@@ -1,0 +1,38 @@
+{
+  "chainId": 137,
+  "transactions": [
+    {
+      "id": "deposit-001",
+      "type": "deposit",
+      "privateKey": "<YOUR_PRIVATE_KEY>",
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "amount": "200000"
+    },
+    {
+      "id": "swap-001",
+      "type": "swap",
+      "privateKey": "<YOUR_PRIVATE_KEY>",
+      "tokenIn": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "tokenOut": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+      "amountIn": "100000",
+      "slippagePercentage": 0.1
+    },
+    {
+      "id": "transfer-001",
+      "type": "transfer",
+      "privateKey": "<YOUR_PRIVATE_KEY>",
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "amount": "50000",
+      "recipientAddress": "<HINKAL_RECIPIENT_ADDRESS_5_PARTS>"
+    },
+    {
+      "id": "withdraw-001",
+      "type": "withdraw",
+      "privateKey": "<YOUR_PRIVATE_KEY>",
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "amount": "30000",
+      "recipientAddress": "<RECIPIENT_ETH_ADDRESS>",
+      "isRelayerOff": false
+    }
+  ]
+}
