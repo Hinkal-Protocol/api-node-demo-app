@@ -1,5 +1,5 @@
 import { Auth } from "./types";
-import { ExternalActionId, getFeeStructure } from "./fees";
+import { ExternalActionId, FeeStructure } from "./fees";
 import { API_BASE_URL } from "../constants/server.constants";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
@@ -58,18 +58,11 @@ export const executeSwap = async (
   outputTokenAddress: string,
   inAmountWei: bigint,
   quotedData: SwapData,
+  feeStructure: FeeStructure,
 ): Promise<string> => {
   const outAmountWei = BigInt(quotedData.outSwapAmount);
   const outAdjusted =
     (outAmountWei * (10000n - HINKAL_SWAP_VARIABLE_RATE)) / 10000n;
-
-  const feeStructure = await getFeeStructure(
-    auth,
-    inputTokenAddress,
-    [inputTokenAddress, outputTokenAddress],
-    quotedData.externalActionId,
-    HINKAL_SWAP_VARIABLE_RATE.toString(),
-  );
 
   const res = await fetch(`${API_BASE_URL}/swap`, {
     method: "POST",

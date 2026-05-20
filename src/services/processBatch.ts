@@ -1,6 +1,5 @@
 import { BatchTransactionInput } from "../types";
 import { executeTransaction } from "./executeTransaction";
-import { buildAuth } from "./auth";
 import { ethers } from "ethers";
 import {
   logBatchStart,
@@ -67,8 +66,7 @@ export const processBatch = async (
       logTransaction(i + 1, input.transactions.length, tx.type, tx.id);
       await logWallet(signer.address, balanceNative, chainId);
 
-      const auth = await buildAuth(signer, chainId);
-      const result = await executeTransaction(signer, auth, tx);
+      const result = await executeTransaction(signer, chainId, tx);
 
       if (!result.success) {
         const errorMessage = result.error || "Unknown error";

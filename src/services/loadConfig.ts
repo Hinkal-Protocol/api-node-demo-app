@@ -5,6 +5,7 @@ import {
   BatchTransaction,
   BatchTransactionType,
 } from "../types";
+import { isValidPositiveAmount } from "../utils/amount.utils";
 
 const TRANSACTIONS_FILE_NAME = "transactions.json";
 
@@ -76,17 +77,9 @@ const validateTransaction = async (
     );
   }
 
-  if (tx.type !== BatchTransactionType.Swap) {
-    try {
-      BigInt(amountValue);
-    } catch {
-      throw new Error(
-        `Transaction ${txId}: '${amountField}' value '${amountValue}' cannot be converted to BigInt`,
-      );
-    }
-  } else if (isNaN(parseFloat(amountValue)) || parseFloat(amountValue) <= 0) {
+  if (!isValidPositiveAmount(amountValue)) {
     throw new Error(
-      `Transaction ${txId}: 'amountIn' value '${amountValue}' must be a valid positive number`,
+      `Transaction ${txId}: '${amountField}' value '${amountValue}' must be a valid positive number or wei amount`,
     );
   }
 

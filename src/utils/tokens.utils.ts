@@ -1,6 +1,11 @@
 import { getERC20Registry } from "../constants/token-data";
 import { ERC20Token } from "../types";
 
+export const zeroAddress = `0x${"00".repeat(20)}`;
+
+export const isNativeTokenAddress = (address: string): boolean =>
+  address === zeroAddress;
+
 export const getERC20Token = (
   address: string,
   chainId: number,
