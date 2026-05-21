@@ -6,14 +6,16 @@ import {
 } from "../services/enclave-auth";
 import type { TxSessionAuth } from "./types";
 
-// Values must match the server's DepositAndWithdrawOrderStatus enum
-// (apps/enclave-api/src/models/DepositAndWithdrawOrderSchema.ts).
-export enum OrderStatus {
-  AwaitingDeposit = "awaiting-deposit",
-  DepositConfirmed = "deposit-confirmed",
-  WithdrawScheduled = "withdraw-scheduled",
+export enum DepositAndWithdrawPublicStatus {
+  Processing = "processing",
   Failed = "failed",
-  Expired = "expired",
+  Scheduled = "scheduled",
+}
+
+export interface ScheduledTransactionItemStatus {
+  status: string;
+  scheduledTime: string;
+  txHash: string | null;
 }
 
 export type Recipient = { address: string; amount: string };
@@ -82,10 +84,8 @@ export const depositAndWithdraw = async (
 
 export type OrderStatusResponse = {
   success: boolean;
-  status: OrderStatus;
-  txHash: string | null;
-  scheduleId: string | null;
-  failureReason: string | null;
+  status: DepositAndWithdrawPublicStatus;
+  scheduledTransactions?: ScheduledTransactionItemStatus[];
 };
 
 export const getOrderStatus = async (
@@ -104,10 +104,9 @@ export const getOrderStatus = async (
 const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 10 * 60_000;
 
-const TERMINAL_STATUSES = new Set<OrderStatus>([
-  OrderStatus.WithdrawScheduled,
-  OrderStatus.Failed,
-  OrderStatus.Expired,
+const TERMINAL_STATUSES = new Set<DepositAndWithdrawPublicStatus>([
+  DepositAndWithdrawPublicStatus.Failed,
+  DepositAndWithdrawPublicStatus.Scheduled,
 ]);
 
 export const waitForOrderTerminal = async (

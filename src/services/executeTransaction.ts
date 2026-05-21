@@ -18,7 +18,7 @@ import {
 } from "../api/swap";
 import {
   depositAndWithdraw,
-  OrderStatus,
+  DepositAndWithdrawPublicStatus,
   waitForOrderTerminal,
 } from "../api/multiSend";
 import { ExternalActionId, getFeeStructure } from "../api/fees";
@@ -296,10 +296,8 @@ const executeDepositAndWithdraw = async (
     const receipt = await depositTx.wait();
 
     const finalOrder = await waitForOrderTerminal(order.orderId);
-    if (finalOrder.status !== OrderStatus.WithdrawScheduled) {
-      throw new Error(
-        finalOrder.failureReason ?? `Order ended as '${finalOrder.status}'`,
-      );
+    if (finalOrder.status !== DepositAndWithdrawPublicStatus.Scheduled) {
+      throw new Error(`Order ended as '${finalOrder.status}'`);
     }
 
     return {
