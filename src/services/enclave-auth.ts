@@ -5,9 +5,46 @@ import {
   getEnclaveTypedDataDomain,
   getTypesForPrimary,
 } from "../constants/enclave.constants";
-import type { EnclaveAuthFields } from "../api/types";
+import type { EnclaveAuthFields, TxSessionAuth } from "../api/types";
+import type { Recipient } from "../api/multiSend";
 
-export const generateTxNonce = (): string => randomUUID();
+export const generateNonce = (): string => randomUUID();
+
+export enum EnclaveSessionAccess {
+  Read = "read",
+  Write = "write",
+}
+
+export const buildEnclaveSignMessage = (
+  sessionId: string,
+  access: EnclaveSessionAccess = EnclaveSessionAccess.Read,
+): string => {
+  const lines = ["Authorize Hinkal session", `Session ID: ${sessionId}`];
+  if (access === EnclaveSessionAccess.Write) {
+    lines.push("This signature can also be used to submit transactions.");
+  }
+  return lines.join("\n");
+};
+
+export const resolveTxAuthFields = async (
+  session: TxSessionAuth,
+  buildTypedAuth: () => Promise<EnclaveAuthFields>,
+): Promise<EnclaveAuthFields> => {
+  if (session.hasWriteAccess) {
+    return { signature: session.signature, nonce: session.nonce };
+  }
+  return buildTypedAuth();
+};
+
+export const buildEnclaveAuthFields = async (
+  signer: ethers.Signer,
+): Promise<EnclaveAuthFields> => {
+  const nonce = generateNonce();
+  const signature = await signer.signMessage(
+    buildEnclaveSignMessage(nonce, EnclaveSessionAccess.Read),
+  );
+  return { signature, nonce };
+};
 
 type TokenAmountPair = { token: string; amount: string };
 
@@ -36,7 +73,7 @@ const signEnclaveTypedData = async (
   chainId: number,
   buildMessage: (nonce: string) => Record<string, unknown>,
 ): Promise<EnclaveAuthFields> => {
-  const nonce = generateTxNonce();
+  const nonce = generateNonce();
   const signature = await signer.signTypedData(
     getEnclaveTypedDataDomain(chainId),
     getTypesForPrimary(primaryType),
@@ -111,8 +148,7 @@ export const buildDepositAndWithdrawAuthFields = (
   params: {
     chainId: number;
     tokenAddress: string;
-    recipientAddress: string;
-    amount: string;
+    recipients: Recipient[];
   },
 ) =>
   signEnclaveTypedData(
@@ -123,11 +159,11 @@ export const buildDepositAndWithdrawAuthFields = (
       nonce,
       chainId: BigInt(params.chainId),
       tokenAddress: params.tokenAddress,
-      recipients: [
-        {
-          recipient: params.recipientAddress,
-          amount: BigInt(params.amount),
-        },
-      ],
+      recipients: params.recipients
+        .map(({ address, amount }) => ({
+          recipient: ethers.getAddress(address),
+          amount: BigInt(amount),
+        }))
+        .sort((a, b) => a.recipient.localeCompare(b.recipient)),
     }),
   );

@@ -1,16 +1,26 @@
+import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
-import { Auth } from "./types";
+import {
+  buildDepositAndWithdrawAuthFields,
+  resolveTxAuthFields,
+} from "../services/enclave-auth";
+import type { TxSessionAuth } from "./types";
 
+// Values must match the server's DepositAndWithdrawOrderStatus enum
+// (apps/enclave-api/src/models/DepositAndWithdrawOrderSchema.ts).
 export enum OrderStatus {
-  AwaitingDeposit = "AwaitingDeposit",
-  DepositConfirmed = "DepositConfirmed",
-  WithdrawScheduled = "WithdrawScheduled",
-  Failed = "Failed",
-  Expired = "Expired",
+  AwaitingDeposit = "awaiting-deposit",
+  DepositConfirmed = "deposit-confirmed",
+  WithdrawScheduled = "withdraw-scheduled",
+  Failed = "failed",
+  Expired = "expired",
 }
+
+export type Recipient = { address: string; amount: string };
 
 export type DepositAndWithdrawOrder = {
   orderId: string;
+  approvalAddress: string | null;
   serializedTx: string;
   amountIn: string;
   amountOut: string;
@@ -18,22 +28,30 @@ export type DepositAndWithdrawOrder = {
 };
 
 export const depositAndWithdraw = async (
-  auth: Auth,
+  signer: ethers.Signer,
+  session: TxSessionAuth,
+  account: string,
+  chainId: number,
   tokenAddress: string,
-  amount: string,
-  recipientAddress: string,
+  recipients: Recipient[],
   feeToken?: string,
+  txCompletionTime?: number,
 ): Promise<DepositAndWithdrawOrder> => {
-  const { signature, nonce, address, chainId } = auth;
+  const authFields = await resolveTxAuthFields(session, () =>
+    buildDepositAndWithdrawAuthFields(signer, {
+      chainId,
+      tokenAddress,
+      recipients,
+    }),
+  );
   const body = {
-    signature,
-    nonce,
-    address,
+    ...authFields,
+    address: account,
     chainId,
     tokenAddress,
-    amount,
-    recipientAddress,
+    recipients,
     feeToken,
+    ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 
   const res = await fetch(`${API_BASE_URL}/deposit-and-withdraw`, {
@@ -54,6 +72,7 @@ export const depositAndWithdraw = async (
 
   return {
     orderId: data.orderId,
+    approvalAddress: data.approvalAddress,
     serializedTx: data.serializedTx,
     amountIn: data.amountIn,
     amountOut: data.amountOut,
@@ -80,4 +99,27 @@ export const getOrderStatus = async (
   }
 
   return data;
+};
+
+const POLL_INTERVAL_MS = 5_000;
+const POLL_TIMEOUT_MS = 10 * 60_000;
+
+const TERMINAL_STATUSES = new Set<OrderStatus>([
+  OrderStatus.WithdrawScheduled,
+  OrderStatus.Failed,
+  OrderStatus.Expired,
+]);
+
+export const waitForOrderTerminal = async (
+  orderId: string,
+): Promise<OrderStatusResponse> => {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const data = await getOrderStatus(orderId);
+    if (TERMINAL_STATUSES.has(data.status)) {
+      return data;
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+  throw new Error(`Order ${orderId} did not reach a terminal state in time`);
 };

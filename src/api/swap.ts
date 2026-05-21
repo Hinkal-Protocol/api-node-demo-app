@@ -1,6 +1,11 @@
-import { Auth } from "./types";
-import { ExternalActionId, FeeStructure } from "./fees";
+import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
+import {
+  buildSwapAuthFields,
+  resolveTxAuthFields,
+} from "../services/enclave-auth";
+import { ExternalActionId, FeeStructure } from "./fees";
+import type { Auth, TxSessionAuth } from "./types";
 
 export const HINKAL_SWAP_VARIABLE_RATE = 35n;
 
@@ -53,7 +58,10 @@ export const getSwapData = async (
 };
 
 export const executeSwap = async (
-  auth: Auth,
+  signer: ethers.Signer,
+  session: TxSessionAuth,
+  account: string,
+  chainId: number,
   inputTokenAddress: string,
   outputTokenAddress: string,
   inAmountWei: bigint,
@@ -64,13 +72,22 @@ export const executeSwap = async (
   const outAdjusted =
     (outAmountWei * (10000n - HINKAL_SWAP_VARIABLE_RATE)) / 10000n;
 
+  const tokenAddresses = [inputTokenAddress, outputTokenAddress];
+  const amounts = [(-inAmountWei).toString(), outAdjusted.toString()];
+
+  const authFields = await resolveTxAuthFields(session, () =>
+    buildSwapAuthFields(signer, { chainId, tokenAddresses, amounts }),
+  );
+
   const res = await fetch(`${API_BASE_URL}/swap`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...auth,
-      tokenAddresses: [inputTokenAddress, outputTokenAddress],
-      amounts: [(-inAmountWei).toString(), outAdjusted.toString()],
+      ...authFields,
+      address: account,
+      chainId,
+      tokenAddresses,
+      amounts,
       externalActionId: quotedData.externalActionId,
       swapData: quotedData.swapData,
       feeToken: inputTokenAddress,

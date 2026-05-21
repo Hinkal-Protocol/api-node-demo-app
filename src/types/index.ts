@@ -3,6 +3,7 @@ export enum BatchTransactionType {
   Withdraw = "withdraw",
   Transfer = "transfer",
   Swap = "swap",
+  DepositAndWithdraw = "deposit-and-withdraw",
 }
 
 export interface BatchWalletConfig {
@@ -51,11 +52,25 @@ export interface SwapTransaction extends BaseBatchTransaction {
   feeToken?: string;
 }
 
+export interface DepositAndWithdrawRecipient {
+  address: string;
+  amount: string;
+}
+
+export interface DepositAndWithdrawTransaction extends BaseBatchTransaction {
+  type: BatchTransactionType.DepositAndWithdraw;
+  tokenAddress: string;
+  recipients: DepositAndWithdrawRecipient[];
+  feeToken?: string;
+  txCompletionTime?: number;
+}
+
 export type BatchTransaction =
   | DepositTransaction
   | WithdrawTransaction
   | TransferTransaction
-  | SwapTransaction;
+  | SwapTransaction
+  | DepositAndWithdrawTransaction;
 
 export interface BatchTransactionInput {
   chainId: number;

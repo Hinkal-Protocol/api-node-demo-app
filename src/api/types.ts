@@ -3,7 +3,14 @@ export type EnclaveAuthFields = {
   nonce: string;
 };
 
-/** Personal-message auth for getter routes (balance, fees, swap quote). */
+export type TxSessionAuth = EnclaveAuthFields & {
+  hasWriteAccess: boolean;
+};
+
+export type EnclaveSession = TxSessionAuth & {
+  expiresAt: string;
+};
+
 export type Auth = EnclaveAuthFields & {
   address: string;
   chainId: number;

@@ -10,6 +10,8 @@ import {
   logBatchComplete,
 } from "../utils/logger";
 import { networkRegistry } from "../constants";
+import { EnclaveSession } from "../api/types";
+import { createEnclaveSession } from "./session";
 
 export interface BatchProcessResult {
   jobId: string;
@@ -27,6 +29,21 @@ const getProvider = (chainId: number, rpcUrl: string): ethers.Provider => {
     providerCache.set(chainId, new ethers.JsonRpcProvider(rpcUrl));
   }
   return providerCache.get(chainId)!;
+};
+
+const sessionCache = new Map<string, EnclaveSession>();
+
+const getSession = async (
+  signer: ethers.Wallet,
+  chainId: number,
+): Promise<EnclaveSession> => {
+  const key = `${signer.address.toLowerCase()}:${chainId}`;
+  const cached = sessionCache.get(key);
+  if (cached) return cached;
+
+  const session = await createEnclaveSession(signer, chainId, true);
+  sessionCache.set(key, session);
+  return session;
 };
 
 export const processBatch = async (
@@ -66,7 +83,8 @@ export const processBatch = async (
       logTransaction(i + 1, input.transactions.length, tx.type, tx.id);
       await logWallet(signer.address, balanceNative, chainId);
 
-      const result = await executeTransaction(signer, chainId, tx);
+      const session = await getSession(signer, chainId);
+      const result = await executeTransaction(signer, chainId, session, tx);
 
       if (!result.success) {
         const errorMessage = result.error || "Unknown error";

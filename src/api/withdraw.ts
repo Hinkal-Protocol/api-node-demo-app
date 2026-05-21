@@ -1,9 +1,17 @@
-import { Auth } from "./types";
-import { FeeStructure } from "./fees";
+import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
+import {
+  buildWithdrawAuthFields,
+  resolveTxAuthFields,
+} from "../services/enclave-auth";
+import type { TxSessionAuth } from "./types";
+import { FeeStructure } from "./fees";
 
 export const withdraw = async (
-  auth: Auth,
+  signer: ethers.Signer,
+  session: TxSessionAuth,
+  account: string,
+  chainId: number,
   tokenAddresses: string[],
   amounts: string[],
   recipientAddress: string,
@@ -11,11 +19,17 @@ export const withdraw = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
-  const { signature, nonce, address, chainId } = auth;
+  const authFields = await resolveTxAuthFields(session, () =>
+    buildWithdrawAuthFields(signer, {
+      chainId,
+      tokenAddresses,
+      amounts,
+      recipient: recipientAddress,
+    }),
+  );
   const body = {
-    signature,
-    nonce,
-    address,
+    ...authFields,
+    address: account,
     chainId,
     tokenAddresses,
     amounts,

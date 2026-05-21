@@ -22,6 +22,7 @@ const REQUIRED_FIELDS: Record<BatchTransactionType, string[]> = {
     "amount",
   ],
   [BatchTransactionType.Swap]: ["tokenIn", "tokenOut", "amountIn"],
+  [BatchTransactionType.DepositAndWithdraw]: ["tokenAddress", "recipients"],
 };
 
 const validateRequiredField = (tx: any, field: string, txId: string): void => {
@@ -66,6 +67,10 @@ const validateTransaction = async (
     );
 
   const processedTx = { ...tx, chainId };
+
+  if (tx.type === BatchTransactionType.DepositAndWithdraw) {
+    return processedTx as BatchTransaction;
+  }
 
   const amountField =
     tx.type === BatchTransactionType.Swap ? "amountIn" : "amount";
