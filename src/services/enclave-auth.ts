@@ -6,7 +6,7 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import type { EnclaveAuthFields, TxSessionAuth } from "../api/types";
-import type { Recipient } from "../api/multiSend";
+import type { Recipient } from "../api/privateSend";
 
 export const generateNonce = (): string => randomUUID();
 
@@ -143,7 +143,7 @@ export const buildSwapAuthFields = (
     ),
   }));
 
-export const buildDepositAndWithdrawAuthFields = (
+export const buildPrivateSendAuthFields = (
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -153,7 +153,7 @@ export const buildDepositAndWithdrawAuthFields = (
 ) =>
   signEnclaveTypedData(
     signer,
-    "DepositAndWithdraw",
+    "PrivateSend",
     params.chainId,
     (nonce) => ({
       nonce,

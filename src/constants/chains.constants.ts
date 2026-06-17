@@ -2,6 +2,7 @@ export const chainIds = {
   polygon: 137,
   arbMainnet: 42161,
   ethMainnet: 1,
+  sepolia: 11155111,
   optimism: 10,
   base: 8453,
   arcTestnet: 5042002,

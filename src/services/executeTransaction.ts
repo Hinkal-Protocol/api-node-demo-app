@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import {
   BatchTransaction,
   BatchTransactionType,
-  DepositAndWithdrawTransaction,
+  PrivateSendTransaction,
   DepositTransaction,
   SwapTransaction,
   TransferTransaction,
@@ -17,10 +17,10 @@ import {
   HINKAL_SWAP_VARIABLE_RATE,
 } from "../api/swap";
 import {
-  depositAndWithdraw,
-  DepositAndWithdrawPublicStatus,
+  privateSend,
+  PrivateSendPublicStatus,
   waitForOrderTerminal,
-} from "../api/multiSend";
+} from "../api/privateSend";
 import { ExternalActionId, getFeeStructure } from "../api/fees";
 import { getERC20Token } from "../constants/token-data";
 import { resolveAmountToWeiString } from "../utils/amount.utils";
@@ -68,7 +68,7 @@ const resolveTxAmount = (
 };
 
 const buildGetterAuth = (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
 ): Auth => ({
@@ -79,7 +79,7 @@ const buildGetterAuth = (
 });
 
 const executeDeposit = async (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
   tx: DepositTransaction,
@@ -129,7 +129,7 @@ const executeDeposit = async (
 };
 
 const executeWithdraw = async (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
   tx: WithdrawTransaction,
@@ -140,11 +140,11 @@ const executeWithdraw = async (
     const feeStructure = isRelayerOff
       ? undefined
       : await getFeeStructure(
-          buildGetterAuth(signer, session, chainId),
-          tx.feeToken ?? tx.tokenAddress,
-          [tx.tokenAddress],
-          ExternalActionId.Transact,
-        );
+        buildGetterAuth(signer, session, chainId),
+        tx.feeToken ?? tx.tokenAddress,
+        [tx.tokenAddress],
+        ExternalActionId.Transact,
+      );
 
     const txHash = await withdraw(
       signer,
@@ -165,7 +165,7 @@ const executeWithdraw = async (
 };
 
 const executeTransfer = async (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
   tx: TransferTransaction,
@@ -197,26 +197,21 @@ const executeTransfer = async (
 };
 
 const executeSwapAction = async (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
   tx: SwapTransaction,
 ): Promise<ExecutionResult> => {
   try {
     const getterAuth = buildGetterAuth(signer, session, chainId);
+    const inAmountWeiStr = resolveTxAmount(tx.amountIn, tx.tokenIn, chainId);
+    const inAmountWei = BigInt(inAmountWeiStr);
     const quotedData = await getSwapData(
       getterAuth,
       tx.tokenIn,
       tx.tokenOut,
-      tx.amountIn,
+      inAmountWeiStr,
       tx.slippagePercentage,
-    );
-
-    const inToken = getERC20Token(tx.tokenIn, chainId);
-    if (!inToken)
-      throw new Error(`Token not found: ${tx.tokenIn} on chain ${chainId}`);
-    const inAmountWei = BigInt(
-      Math.floor(parseFloat(tx.amountIn) * 10 ** inToken.decimals),
     );
 
     const feeStructure = await getFeeStructure(
@@ -244,11 +239,11 @@ const executeSwapAction = async (
   }
 };
 
-const executeDepositAndWithdraw = async (
-  signer: ethers.Wallet,
+const executePrivateSend = async (
+  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
-  tx: DepositAndWithdrawTransaction,
+  tx: PrivateSendTransaction,
 ): Promise<ExecutionResult> => {
   try {
     const recipients = tx.recipients.map((recipient) => ({
@@ -256,7 +251,7 @@ const executeDepositAndWithdraw = async (
       amount: resolveTxAmount(recipient.amount, tx.tokenAddress, chainId),
     }));
 
-    const order = await depositAndWithdraw(
+    const order = await privateSend(
       signer,
       session,
       signer.address,
@@ -296,7 +291,7 @@ const executeDepositAndWithdraw = async (
     const receipt = await depositTx.wait();
 
     const finalOrder = await waitForOrderTerminal(order.orderId);
-    if (finalOrder.status !== DepositAndWithdrawPublicStatus.Scheduled) {
+    if (finalOrder.status !== PrivateSendPublicStatus.Scheduled) {
       throw new Error(`Order ended as '${finalOrder.status}'`);
     }
 
@@ -312,7 +307,7 @@ const executeDepositAndWithdraw = async (
 };
 
 export const executeTransaction = async (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   chainId: number,
   session: TxSessionAuth,
   tx: BatchTransaction,
@@ -347,12 +342,12 @@ export const executeTransaction = async (
           chainId,
           tx as SwapTransaction,
         );
-      case BatchTransactionType.DepositAndWithdraw:
-        return await executeDepositAndWithdraw(
+      case BatchTransactionType.PrivateSend:
+        return await executePrivateSend(
           signer,
           session,
           chainId,
-          tx as DepositAndWithdrawTransaction,
+          tx as PrivateSendTransaction,
         );
       default:
         return {

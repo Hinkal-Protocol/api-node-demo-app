@@ -12,6 +12,7 @@ import {
 import { networkRegistry } from "../constants";
 import { EnclaveSession } from "../api/types";
 import { createEnclaveSession } from "./session";
+import { buildWdkSigner } from "./wdkWallet";
 
 export interface BatchProcessResult {
   jobId: string;
@@ -34,7 +35,7 @@ const getProvider = (chainId: number, rpcUrl: string): ethers.Provider => {
 const sessionCache = new Map<string, EnclaveSession>();
 
 const getSession = async (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   chainId: number,
 ): Promise<EnclaveSession> => {
   const key = `${signer.address.toLowerCase()}:${chainId}`;
@@ -69,14 +70,18 @@ export const processBatch = async (
           `Transaction ${tx.id}: missing chainId (not specified in transaction or default)`,
         );
 
-      if (!tx.privateKey)
-        throw new Error(`Transaction ${tx.id}: missing privateKey`);
+      if (!tx.privateKey && !tx.seedPhrase)
+        throw new Error(
+          `Transaction ${tx.id}: missing signer (provide 'privateKey' or 'seedPhrase')`,
+        );
 
       const rpcUrl = networkRegistry[chainId]?.fetchRpcUrl;
       if (!rpcUrl) throw new Error(`RPC URL not found for chain ${chainId}`);
 
       const provider = getProvider(chainId, rpcUrl);
-      const signer = new ethers.Wallet(tx.privateKey, provider);
+      const signer: ethers.BaseWallet = tx.seedPhrase
+        ? await buildWdkSigner(tx.seedPhrase, provider)
+        : new ethers.Wallet(tx.privateKey!, provider);
       const balance = await provider.getBalance(signer.address);
       const balanceNative = ethers.formatEther(balance);
 

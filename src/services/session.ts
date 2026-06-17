@@ -12,7 +12,7 @@ type CreateSessionResponse =
   | { success: false; error?: string };
 
 export const createEnclaveSession = async (
-  signer: ethers.Wallet,
+  signer: ethers.BaseWallet,
   chainId: number,
   writeAccess: boolean,
 ): Promise<EnclaveSession> => {

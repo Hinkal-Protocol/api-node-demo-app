@@ -9,6 +9,11 @@ export const networkRegistry: Record<number, Network> = {
     chainId: chainIds.ethMainnet,
     fetchRpcUrl: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
   },
+  [chainIds.sepolia]: {
+    name: "Sepolia",
+    chainId: chainIds.sepolia,
+    fetchRpcUrl: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  },
   [chainIds.arbMainnet]: {
     name: "Arbitrum",
     chainId: chainIds.arbMainnet,
