@@ -20,7 +20,7 @@ import {
   privateSend,
   PrivateSendPublicStatus,
   waitForOrderTerminal,
-} from "../api/multiSend";
+} from "../api/privateSend";
 import { ExternalActionId, getFeeStructure } from "../api/fees";
 import { getERC20Token } from "../constants/token-data";
 import { resolveAmountToWeiString } from "../utils/amount.utils";
@@ -140,11 +140,11 @@ const executeWithdraw = async (
     const feeStructure = isRelayerOff
       ? undefined
       : await getFeeStructure(
-          buildGetterAuth(signer, session, chainId),
-          tx.feeToken ?? tx.tokenAddress,
-          [tx.tokenAddress],
-          ExternalActionId.Transact,
-        );
+        buildGetterAuth(signer, session, chainId),
+        tx.feeToken ?? tx.tokenAddress,
+        [tx.tokenAddress],
+        ExternalActionId.Transact,
+      );
 
     const txHash = await withdraw(
       signer,
@@ -204,19 +204,14 @@ const executeSwapAction = async (
 ): Promise<ExecutionResult> => {
   try {
     const getterAuth = buildGetterAuth(signer, session, chainId);
+    const inAmountWeiStr = resolveTxAmount(tx.amountIn, tx.tokenIn, chainId);
+    const inAmountWei = BigInt(inAmountWeiStr);
     const quotedData = await getSwapData(
       getterAuth,
       tx.tokenIn,
       tx.tokenOut,
-      tx.amountIn,
+      inAmountWeiStr,
       tx.slippagePercentage,
-    );
-
-    const inToken = getERC20Token(tx.tokenIn, chainId);
-    if (!inToken)
-      throw new Error(`Token not found: ${tx.tokenIn} on chain ${chainId}`);
-    const inAmountWei = BigInt(
-      Math.floor(parseFloat(tx.amountIn) * 10 ** inToken.decimals),
     );
 
     const feeStructure = await getFeeStructure(

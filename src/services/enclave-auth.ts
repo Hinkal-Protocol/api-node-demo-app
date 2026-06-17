@@ -6,7 +6,7 @@ import {
   getTypesForPrimary,
 } from "../constants/enclave.constants";
 import type { EnclaveAuthFields, TxSessionAuth } from "../api/types";
-import type { Recipient } from "../api/multiSend";
+import type { Recipient } from "../api/privateSend";
 
 export const generateNonce = (): string => randomUUID();
 
