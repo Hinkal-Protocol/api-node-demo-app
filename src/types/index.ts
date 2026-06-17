@@ -3,7 +3,7 @@ export enum BatchTransactionType {
   Withdraw = "withdraw",
   Transfer = "transfer",
   Swap = "swap",
-  DepositAndWithdraw = "deposit-and-withdraw",
+  PrivateSend = "private-send",
 }
 
 export interface BatchWalletConfig {
@@ -14,7 +14,8 @@ export interface BatchWalletConfig {
 export interface BaseBatchTransaction {
   id: string;
   type: BatchTransactionType;
-  privateKey: string;
+  privateKey?: string;
+  seedPhrase?: string;
   chainId?: number;
 }
 
@@ -52,15 +53,15 @@ export interface SwapTransaction extends BaseBatchTransaction {
   feeToken?: string;
 }
 
-export interface DepositAndWithdrawRecipient {
+export interface PrivateSendRecipient {
   address: string;
   amount: string;
 }
 
-export interface DepositAndWithdrawTransaction extends BaseBatchTransaction {
-  type: BatchTransactionType.DepositAndWithdraw;
+export interface PrivateSendTransaction extends BaseBatchTransaction {
+  type: BatchTransactionType.PrivateSend;
   tokenAddress: string;
-  recipients: DepositAndWithdrawRecipient[];
+  recipients: PrivateSendRecipient[];
   feeToken?: string;
   txCompletionTime?: number;
 }
@@ -70,7 +71,7 @@ export type BatchTransaction =
   | WithdrawTransaction
   | TransferTransaction
   | SwapTransaction
-  | DepositAndWithdrawTransaction;
+  | PrivateSendTransaction;
 
 export interface BatchTransactionInput {
   chainId: number;

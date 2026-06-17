@@ -1,12 +1,12 @@
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../constants/server.constants";
 import {
-  buildDepositAndWithdrawAuthFields,
+  buildPrivateSendAuthFields,
   resolveTxAuthFields,
 } from "../services/enclave-auth";
 import type { TxSessionAuth } from "./types";
 
-export enum DepositAndWithdrawPublicStatus {
+export enum PrivateSendPublicStatus {
   Processing = "processing",
   Failed = "failed",
   Scheduled = "scheduled",
@@ -20,7 +20,7 @@ export interface ScheduledTransactionItemStatus {
 
 export type Recipient = { address: string; amount: string };
 
-export type DepositAndWithdrawOrder = {
+export type PrivateSendOrder = {
   orderId: string;
   approvalAddress: string | null;
   serializedTx: string;
@@ -29,7 +29,7 @@ export type DepositAndWithdrawOrder = {
   fee: string;
 };
 
-export const depositAndWithdraw = async (
+export const privateSend = async (
   signer: ethers.Signer,
   session: TxSessionAuth,
   account: string,
@@ -38,9 +38,9 @@ export const depositAndWithdraw = async (
   recipients: Recipient[],
   feeToken?: string,
   txCompletionTime?: number,
-): Promise<DepositAndWithdrawOrder> => {
+): Promise<PrivateSendOrder> => {
   const authFields = await resolveTxAuthFields(session, () =>
-    buildDepositAndWithdrawAuthFields(signer, {
+    buildPrivateSendAuthFields(signer, {
       chainId,
       tokenAddress,
       recipients,
@@ -56,19 +56,19 @@ export const depositAndWithdraw = async (
     ...(txCompletionTime !== undefined && { txCompletionTime }),
   };
 
-  const res = await fetch(`${API_BASE_URL}/deposit-and-withdraw`, {
+  const res = await fetch(`${API_BASE_URL}/private-send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
   const data = (await res.json()) as
-    | ({ success: true } & DepositAndWithdrawOrder)
+    | ({ success: true } & PrivateSendOrder)
     | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
-      (data as { error?: string }).error ?? "depositAndWithdraw failed",
+      (data as { error?: string }).error ?? "privateSend failed",
     );
   }
 
@@ -84,14 +84,14 @@ export const depositAndWithdraw = async (
 
 export type OrderStatusResponse = {
   success: boolean;
-  status: DepositAndWithdrawPublicStatus;
+  status: PrivateSendPublicStatus;
   scheduledTransactions?: ScheduledTransactionItemStatus[];
 };
 
 export const getOrderStatus = async (
   orderId: string,
 ): Promise<OrderStatusResponse> => {
-  const res = await fetch(`${API_BASE_URL}/deposit-and-withdraw/${orderId}`);
+  const res = await fetch(`${API_BASE_URL}/private-send/${orderId}`);
   const data = (await res.json()) as OrderStatusResponse & { error?: string };
 
   if (!res.ok || data.success === false) {
@@ -104,9 +104,9 @@ export const getOrderStatus = async (
 const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 10 * 60_000;
 
-const TERMINAL_STATUSES = new Set<DepositAndWithdrawPublicStatus>([
-  DepositAndWithdrawPublicStatus.Failed,
-  DepositAndWithdrawPublicStatus.Scheduled,
+const TERMINAL_STATUSES = new Set<PrivateSendPublicStatus>([
+  PrivateSendPublicStatus.Failed,
+  PrivateSendPublicStatus.Scheduled,
 ]);
 
 export const waitForOrderTerminal = async (

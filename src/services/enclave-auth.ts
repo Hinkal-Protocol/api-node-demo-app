@@ -143,7 +143,7 @@ export const buildSwapAuthFields = (
     ),
   }));
 
-export const buildDepositAndWithdrawAuthFields = (
+export const buildPrivateSendAuthFields = (
   signer: ethers.Signer,
   params: {
     chainId: number;
@@ -153,7 +153,7 @@ export const buildDepositAndWithdrawAuthFields = (
 ) =>
   signEnclaveTypedData(
     signer,
-    "DepositAndWithdraw",
+    "PrivateSend",
     params.chainId,
     (nonce) => ({
       nonce,

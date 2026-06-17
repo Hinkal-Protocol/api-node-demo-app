@@ -22,7 +22,7 @@ const REQUIRED_FIELDS: Record<BatchTransactionType, string[]> = {
     "amount",
   ],
   [BatchTransactionType.Swap]: ["tokenIn", "tokenOut", "amountIn"],
-  [BatchTransactionType.DepositAndWithdraw]: ["tokenAddress", "recipients"],
+  [BatchTransactionType.PrivateSend]: ["tokenAddress", "recipients"],
 };
 
 const validateRequiredField = (tx: any, field: string, txId: string): void => {
@@ -44,7 +44,10 @@ const validateTransaction = async (
   if (!tx.id || !tx.type)
     throw new Error(`Transaction ${txId}: missing 'id' or 'type'`);
 
-  validateRequiredField(tx, "privateKey", txId);
+  if (!tx.privateKey && !tx.seedPhrase)
+    throw new Error(
+      `Transaction ${txId}: missing signer (provide 'privateKey' or 'seedPhrase')`,
+    );
 
   const requiredFields = REQUIRED_FIELDS[tx.type as BatchTransactionType];
   if (!requiredFields) {
@@ -68,7 +71,7 @@ const validateTransaction = async (
 
   const processedTx = { ...tx, chainId };
 
-  if (tx.type === BatchTransactionType.DepositAndWithdraw) {
+  if (tx.type === BatchTransactionType.PrivateSend) {
     return processedTx as BatchTransaction;
   }
 
