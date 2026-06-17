@@ -33,6 +33,22 @@
       "amount": "30000",
       "recipientAddress": "<RECIPIENT_ETH_ADDRESS>",
       "isRelayerOff": false
+    },
+    {
+      "id": "private-send-001",
+      "type": "private-send",
+      "privateKey": "<YOUR_PRIVATE_KEY>",
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "recipients": [
+        {
+          "address": "<RECIPIENT_ETH_ADDRESS>",
+          "amount": "20000"
+        },
+        {
+          "address": "<RECIPIENT_ETH_ADDRESS_2>",
+          "amount": "20000"
+        }
+      ]
     }
   ]
 }
