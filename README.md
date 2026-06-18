@@ -4,11 +4,32 @@ Batch-processes Hinkal transactions via the Hinkal Enclave API (HTTP) — not th
 
 ## Setup
 
+Install dependencies:
+
 ```
 yarn install
 ```
 
-Copy `transactions.example.json` to `transactions.json` and fill in `privateKey` or `seedPhrase`, addresses, amounts.
+Create your environment file and add an Alchemy API key (required — RPC URLs are built from it):
+
+```
+cp .env.example .env
+# then set ALCHEMY_API_KEY in .env
+```
+
+Create your transactions file from the template, then fill in the signer, addresses, and amounts:
+
+```
+cp transactions.example.json transactions.json
+```
+
+## Authentication
+
+Each transaction needs a signer. Provide **one** of:
+
+- `privateKey` — raw EVM private key (e.g. `0xabc...`)
+- `seedPhrase` — WDK seed phrase; signer derived via `@tetherto/wdk-wallet-evm` (account index 0)
+
 
 ## Run
 
@@ -18,12 +39,20 @@ yarn start
 
 ## Supported transaction types
 
-- `deposit` — approve + deposit ERC20 to Hinkal shielded balance
-- `withdraw` — withdraw from shielded balance to public recipient (optional `isRelayerOff`)
+- `deposit` — approve + deposit a token into the Hinkal shielded balance
+- `withdraw` — withdraw from the shielded balance to a public recipient (optional `isRelayerOff`)
 - `transfer` — shielded transfer to another Hinkal stealth address
-- `swap` — swap tokens within Hinkal shielded balance
-- `private-send` — deposit + withdraw in one order
+- `swap` — swap tokens within the shielded balance
+- `private-send` — multi-recipient send (deposit + withdraw in one order)
+
+Use the zero address (`0x0000000000000000000000000000000000000000`) as the token to operate on the chain's native coin (e.g. ETH).
+
+## Environment
+
+| Variable          | Required | Description                                              |
+| ----------------- | -------- | -------------------------------------------------------- |
+| `ALCHEMY_API_KEY` | yes      | Alchemy key used to build RPC URLs for every chain.      |
 
 ## Config
 
-Configure API base URL in [src/constants/server.constants.ts](src/constants/server.constants.ts).
+Configure the enclave API base URL in [src/constants/server.constants.ts](src/constants/server.constants.ts).

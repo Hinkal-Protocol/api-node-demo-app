@@ -1,14 +1,17 @@
+import "dotenv/config";
 import { processBatch } from "./services/processBatch";
 import { loadConfig } from "./services/loadConfig";
 import { initializeLogger } from "./utils/logger";
+import { assertMissingEnvVar } from "./utils/assertMissingEnvVar";
 
 initializeLogger();
 
 const main = async () => {
   try {
+    assertMissingEnvVar();
+
     const input = await loadConfig();
     if (!input) {
-      console.error("Failed to load configuration");
       process.exit(1);
     }
     const result = await processBatch(input);

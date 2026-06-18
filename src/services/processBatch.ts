@@ -2,6 +2,7 @@ import { BatchTransactionInput } from "../types";
 import { executeTransaction } from "./executeTransaction";
 import { ethers } from "ethers";
 import {
+  logAlways,
   logBatchStart,
   logTransaction,
   logWallet,
@@ -10,9 +11,15 @@ import {
   logBatchComplete,
 } from "../utils/logger";
 import { networkRegistry } from "../constants";
+import {
+  BALANCE_SYNC_ERROR,
+  MAX_TX_RETRIES,
+  RETRY_DELAY_MS,
+} from "../constants/batch.constants";
 import { EnclaveSession } from "../api/types";
 import { createEnclaveSession } from "./session";
 import { buildWdkSigner } from "./wdkWallet";
+import { sleep } from "../utils/sleep";
 
 export interface BatchProcessResult {
   jobId: string;
@@ -22,6 +29,9 @@ export interface BatchProcessResult {
   failedTransactionId?: string;
   error?: string;
 }
+
+const isBalanceSyncError = (error?: string): boolean =>
+  !!error && error.toLowerCase().includes(BALANCE_SYNC_ERROR);
 
 const providerCache = new Map<number, ethers.Provider>();
 
@@ -89,7 +99,19 @@ export const processBatch = async (
       await logWallet(signer.address, balanceNative, chainId);
 
       const session = await getSession(signer, chainId);
-      const result = await executeTransaction(signer, chainId, session, tx);
+
+      let result = await executeTransaction(signer, chainId, session, tx);
+      for (
+        let attempt = 1;
+        attempt <= MAX_TX_RETRIES && !result.success && isBalanceSyncError(result.error);
+        attempt++
+      ) {
+        logAlways(
+          `Balance not synced for ${tx.id}, retrying (${attempt}/${MAX_TX_RETRIES})...`,
+        );
+        await sleep(RETRY_DELAY_MS);
+        result = await executeTransaction(signer, chainId, session, tx);
+      }
 
       if (!result.success) {
         const errorMessage = result.error || "Unknown error";

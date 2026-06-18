@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import {
   BatchTransactionInput,
@@ -130,6 +130,14 @@ const validateConfigStructure = (
 export const loadConfig = async (): Promise<BatchTransactionInput | null> => {
   try {
     const configPath = join(process.cwd(), TRANSACTIONS_FILE_NAME);
+
+    if (!existsSync(configPath)) {
+      console.error(
+        `${TRANSACTIONS_FILE_NAME} not found. Create it from the template:\n  cp transactions.example.json ${TRANSACTIONS_FILE_NAME}`,
+      );
+      return null;
+    }
+
     const data = JSON.parse(readFileSync(configPath, "utf-8"));
 
     if (!validateConfigStructure(data)) return null;

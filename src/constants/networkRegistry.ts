@@ -1,7 +1,7 @@
 import { Network } from "../types";
 import { chainIds } from ".";
 
-export const ALCHEMY_API_KEY = "X4IiEZsSzGOrJq8tzq7Y3";
+export const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY ?? "";
 
 export const networkRegistry: Record<number, Network> = {
   [chainIds.ethMainnet]: {
