@@ -1,4 +1,5 @@
-import { API_BASE_URL } from "../constants/server.constants";
+import { buildAuthGet } from "../services/enclave-auth";
+import { enclaveFetch } from "../services/enclaveApi";
 import { Auth } from "./types";
 import { ERC20Token } from "../types";
 
@@ -8,20 +9,18 @@ export type TokenBalance = {
   timestamp?: string;
 };
 
+type BalanceResponse =
+  | { success: true; balances: TokenBalance[] }
+  | { error?: string };
+
 export const fetchBalances = async (auth: Auth): Promise<TokenBalance[]> => {
-  const { signature, nonce, address, chainId } = auth;
+  const { queryString, headers, requestNonce } = buildAuthGet(auth);
 
-  const params = new URLSearchParams({
-    address,
-    chainId: String(chainId),
-    signature,
-    nonce,
-  });
-
-  const res = await fetch(`${API_BASE_URL}/balance?${params}`);
-  const data = (await res.json()) as
-    | { success: true; balances: TokenBalance[] }
-    | { error?: string };
+  const { res, data } = await enclaveFetch<BalanceResponse>(
+    `/balance?${queryString}`,
+    requestNonce,
+    { headers },
+  );
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(

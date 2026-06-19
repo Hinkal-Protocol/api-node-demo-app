@@ -5,6 +5,7 @@ export const chainIds = {
   sepolia: 11155111,
   optimism: 10,
   base: 8453,
+  tempo: 4217,
   arcTestnet: 5042002,
   solanaMainnet: 501,
   tronNile: 3448148188,

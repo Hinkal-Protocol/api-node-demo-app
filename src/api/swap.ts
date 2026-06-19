@@ -1,9 +1,6 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
-import {
-  buildSwapAuthFields,
-  resolveTxAuthFields,
-} from "../services/enclave-auth";
+import { buildAuthGet, buildAuthPost, buildSwapAuthFields } from "../services/enclave-auth";
+import { enclaveFetch } from "../services/enclaveApi";
 import { ExternalActionId, FeeStructure } from "./fees";
 import type { Auth, TxSessionAuth } from "./types";
 
@@ -22,25 +19,20 @@ export const getSwapData = async (
   amount: string,
   slippagePercentage?: number,
 ): Promise<SwapData> => {
-  const { signature, nonce, address, chainId } = auth;
-  const params = new URLSearchParams({
-    signature,
-    nonce,
-    address,
-    chainId: String(chainId),
+  const params: Record<string, string> = {
     inputTokenAddress,
     outputTokenAddress,
     amount,
-  });
+  };
   if (slippagePercentage !== undefined) {
-    params.set("slippagePercentage", String(slippagePercentage));
+    params.slippagePercentage = String(slippagePercentage);
   }
 
-  const res = await fetch(`${API_BASE_URL}/get-swap-data?${params}`);
+  const { queryString, headers, requestNonce } = buildAuthGet(auth, params);
 
-  const data = (await res.json()) as
-    | (SwapData & { success: true })
-    | { error?: string };
+  const { res, data } = await enclaveFetch<
+    (SwapData & { success: true }) | { error?: string }
+  >(`/get-swap-data?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
@@ -58,7 +50,6 @@ export const getSwapData = async (
 export const executeSwap = async (
   signer: ethers.Signer,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   inputTokenAddress: string,
   outputTokenAddress: string,
@@ -73,29 +64,37 @@ export const executeSwap = async (
   const tokenAddresses = [inputTokenAddress, outputTokenAddress];
   const amounts = [(-inAmountWei).toString(), outAdjusted.toString()];
 
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildSwapAuthFields(signer, { chainId, tokenAddresses, amounts }),
+  const txData = {
+    tokenAddresses,
+    amounts,
+    externalActionId: quotedData.externalActionId,
+    swapData: quotedData.swapData,
+    feeToken: inputTokenAddress,
+    feeStructure,
+  };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    chainId,
+    txData,
+    () =>
+      buildSwapAuthFields(session.sessionId, signer, {
+        chainId,
+        tokenAddresses,
+        amounts,
+        externalActionId: quotedData.externalActionId,
+        swapData: quotedData.swapData,
+        feeToken: inputTokenAddress,
+        feeStructure,
+      }),
   );
 
-  const res = await fetch(`${API_BASE_URL}/swap`, {
+  const { res, data } = await enclaveFetch<
+    { success: true; txHash: string } | { error?: string }
+  >("/swap", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...authFields,
-      address: account,
-      chainId,
-      tokenAddresses,
-      amounts,
-      externalActionId: quotedData.externalActionId,
-      swapData: quotedData.swapData,
-      feeToken: inputTokenAddress,
-      feeStructure,
-    }),
+    headers,
+    body: bodyJson,
   });
-
-  const data = (await res.json()) as
-    | { success: true; txHash: string }
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Swap failed");

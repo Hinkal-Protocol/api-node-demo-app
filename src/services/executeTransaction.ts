@@ -68,13 +68,11 @@ const resolveTxAmount = (
 };
 
 const buildGetterAuth = (
-  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
 ): Auth => ({
-  signature: session.signature,
-  nonce: session.nonce,
-  address: signer.address,
+  sessionId: session.sessionId,
+  privateKey: session.privateKey,
   chainId,
 });
 
@@ -88,7 +86,6 @@ const executeDeposit = async (
     const txData = await deposit(
       signer,
       session,
-      signer.address,
       chainId,
       [tx.tokenAddress],
       [tx.amount],
@@ -140,7 +137,7 @@ const executeWithdraw = async (
     const feeStructure = isRelayerOff
       ? undefined
       : await getFeeStructure(
-        buildGetterAuth(signer, session, chainId),
+        buildGetterAuth(session, chainId),
         tx.feeToken ?? tx.tokenAddress,
         [tx.tokenAddress],
         ExternalActionId.Transact,
@@ -149,7 +146,6 @@ const executeWithdraw = async (
     const txHash = await withdraw(
       signer,
       session,
-      signer.address,
       chainId,
       [tx.tokenAddress],
       [amountWei],
@@ -173,7 +169,7 @@ const executeTransfer = async (
   try {
     const amountWei = resolveTxAmount(tx.amount, tx.tokenAddress, chainId);
     const feeStructure = await getFeeStructure(
-      buildGetterAuth(signer, session, chainId),
+      buildGetterAuth(session, chainId),
       tx.feeToken ?? tx.tokenAddress,
       [tx.tokenAddress],
       ExternalActionId.Transact,
@@ -182,7 +178,6 @@ const executeTransfer = async (
     const txHash = await transfer(
       signer,
       session,
-      signer.address,
       chainId,
       [tx.tokenAddress],
       [amountWei],
@@ -203,7 +198,7 @@ const executeSwapAction = async (
   tx: SwapTransaction,
 ): Promise<ExecutionResult> => {
   try {
-    const getterAuth = buildGetterAuth(signer, session, chainId);
+    const getterAuth = buildGetterAuth(session, chainId);
     const inAmountWeiStr = resolveTxAmount(tx.amountIn, tx.tokenIn, chainId);
     const inAmountWei = BigInt(inAmountWeiStr);
     const quotedData = await getSwapData(
@@ -225,7 +220,6 @@ const executeSwapAction = async (
     const txHash = await executeSwap(
       signer,
       session,
-      signer.address,
       chainId,
       tx.tokenIn,
       tx.tokenOut,
@@ -254,7 +248,6 @@ const executePrivateSend = async (
     const order = await privateSend(
       signer,
       session,
-      signer.address,
       chainId,
       tx.tokenAddress,
       recipients,

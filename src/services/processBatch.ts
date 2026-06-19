@@ -46,13 +46,12 @@ const sessionCache = new Map<string, EnclaveSession>();
 
 const getSession = async (
   signer: ethers.BaseWallet,
-  chainId: number,
 ): Promise<EnclaveSession> => {
-  const key = `${signer.address.toLowerCase()}:${chainId}`;
+  const key = signer.address.toLowerCase();
   const cached = sessionCache.get(key);
   if (cached) return cached;
 
-  const session = await createEnclaveSession(signer, chainId, true);
+  const session = await createEnclaveSession(signer, false);
   sessionCache.set(key, session);
   return session;
 };
@@ -98,12 +97,14 @@ export const processBatch = async (
       logTransaction(i + 1, input.transactions.length, tx.type, tx.id);
       await logWallet(signer.address, balanceNative, chainId);
 
-      const session = await getSession(signer, chainId);
+      const session = await getSession(signer);
 
       let result = await executeTransaction(signer, chainId, session, tx);
       for (
         let attempt = 1;
-        attempt <= MAX_TX_RETRIES && !result.success && isBalanceSyncError(result.error);
+        attempt <= MAX_TX_RETRIES &&
+        !result.success &&
+        isBalanceSyncError(result.error);
         attempt++
       ) {
         logAlways(

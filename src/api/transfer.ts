@@ -1,16 +1,15 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import {
+  buildAuthPost,
   buildTransferAuthFields,
-  resolveTxAuthFields,
 } from "../services/enclave-auth";
+import { enclaveFetch } from "../services/enclaveApi";
 import type { TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const transfer = async (
   signer: ethers.Signer,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
@@ -18,34 +17,35 @@ export const transfer = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildTransferAuthFields(signer, {
-      chainId,
-      tokenAddresses,
-      amounts,
-      recipient: recipientAddress,
-    }),
-  );
-  const body = {
-    ...authFields,
-    address: account,
-    chainId,
+  const txData = {
     tokenAddresses,
     amounts,
     recipientAddress,
     feeToken,
     feeStructure,
   };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    chainId,
+    txData,
+    () =>
+      buildTransferAuthFields(session.sessionId, signer, {
+        chainId,
+        tokenAddresses,
+        amounts,
+        recipient: recipientAddress,
+        feeToken,
+        feeStructure,
+      }),
+  );
 
-  const res = await fetch(`${API_BASE_URL}/transfer`, {
+  const { res, data } = await enclaveFetch<
+    { success: true; txHash: string } | { error?: string }
+  >("/transfer", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: bodyJson,
   });
-
-  const data = (await res.json()) as
-    | { success: true; txHash: string }
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Transfer failed");
