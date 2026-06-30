@@ -10,6 +10,7 @@ import {
   requestSignaturePostHeader,
 } from "./request-signature";
 import type { EnclaveSession } from "../api/types";
+import type { HinkalSigner } from "./signer.types";
 
 type CreateSessionResponse =
   | { success: true; expiresAt: string }
@@ -50,7 +51,7 @@ const postCreateSession = async (
 };
 
 export const createEnclaveSession = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   useEIP712: boolean,
 ): Promise<EnclaveSession> => {
   const { privateKey, clientPublicKey } = generateClientKeyPair();

@@ -11,11 +11,18 @@ export interface BatchWalletConfig {
   chainId: number;
 }
 
+export interface UtilaSignerConfig {
+  email: string;
+  privateKey: string;
+  wallet: string;
+}
+
 export interface BaseBatchTransaction {
   id: string;
   type: BatchTransactionType;
   privateKey?: string;
   seedPhrase?: string;
+  utila?: UtilaSignerConfig;
   chainId?: number;
 }
 

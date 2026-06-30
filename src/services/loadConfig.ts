@@ -44,9 +44,9 @@ const validateTransaction = async (
   if (!tx.id || !tx.type)
     throw new Error(`Transaction ${txId}: missing 'id' or 'type'`);
 
-  if (!tx.privateKey && !tx.seedPhrase)
+  if (!tx.privateKey && !tx.seedPhrase && !tx.utila)
     throw new Error(
-      `Transaction ${txId}: missing signer (provide 'privateKey' or 'seedPhrase')`,
+      `Transaction ${txId}: missing signer (provide 'privateKey', 'seedPhrase', or 'utila')`,
     );
 
   const requiredFields = REQUIRED_FIELDS[tx.type as BatchTransactionType];

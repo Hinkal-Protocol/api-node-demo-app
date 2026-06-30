@@ -26,6 +26,7 @@ import { getERC20Token } from "../constants/token-data";
 import { resolveAmountToWeiString } from "../utils/amount.utils";
 import { isNativeTokenAddress } from "../utils/tokens.utils";
 import type { Auth, TxSessionAuth } from "../api/types";
+import type { HinkalSigner } from "./signer.types";
 import {
   buildTxOverrides,
   getPendingNonce,
@@ -77,22 +78,23 @@ const buildGetterAuth = (
 });
 
 const executeDeposit = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: DepositTransaction,
 ): Promise<ExecutionResult> => {
   try {
+    const amountWei = resolveTxAmount(tx.amount, tx.tokenAddress, chainId);
     const txData = await deposit(
       signer,
       session,
       chainId,
       [tx.tokenAddress],
-      [tx.amount],
+      [amountWei],
     );
 
     if (!isNativeTokenAddress(tx.tokenAddress)) {
-      const amount = BigInt(tx.amount);
+      const amount = BigInt(amountWei);
       const erc20 = new ethers.Contract(tx.tokenAddress, ERC20_ABI, signer);
       const allowance = await erc20.allowance(signer.address, txData.to);
 
@@ -126,7 +128,7 @@ const executeDeposit = async (
 };
 
 const executeWithdraw = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: WithdrawTransaction,
@@ -161,7 +163,7 @@ const executeWithdraw = async (
 };
 
 const executeTransfer = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: TransferTransaction,
@@ -192,7 +194,7 @@ const executeTransfer = async (
 };
 
 const executeSwapAction = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: SwapTransaction,
@@ -234,7 +236,7 @@ const executeSwapAction = async (
 };
 
 const executePrivateSend = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: PrivateSendTransaction,
@@ -300,7 +302,7 @@ const executePrivateSend = async (
 };
 
 export const executeTransaction = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   chainId: number,
   session: TxSessionAuth,
   tx: BatchTransaction,

@@ -49,6 +49,17 @@
           "amount": "20000"
         }
       ]
+    },
+    {
+      "id": "deposit-utila-001",
+      "type": "deposit",
+      "utila": {
+        "email": "<UTILA_SERVICE_ACCOUNT_EMAIL>",
+        "privateKey": "-----BEGIN PRIVATE KEY-----\n<UTILA_PEM_KEY>\n-----END PRIVATE KEY-----",
+        "wallet": "vaults/<VAULT_ID>/wallets/<WALLET_ID>"
+      },
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "amount": "200000"
     }
   ]
 }
