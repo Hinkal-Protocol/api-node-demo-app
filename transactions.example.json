@@ -51,6 +51,11 @@
       ]
     },
     {
+      "id": "get-private-balance-001",
+      "type": "get-private-balance",
+      "privateKey": "<YOUR_PRIVATE_KEY> OR <YOUR_SEED_PHRASE>"
+    },
+    {
       "id": "deposit-utila-001",
       "type": "deposit",
       "utila": {
@@ -60,6 +65,73 @@
       },
       "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
       "amount": "200000"
+    },
+    {
+      "id": "swap-utila-001",
+      "type": "swap",
+      "utila": {
+        "email": "<UTILA_SERVICE_ACCOUNT_EMAIL>",
+        "privateKey": "-----BEGIN PRIVATE KEY-----\n<UTILA_PEM_KEY>\n-----END PRIVATE KEY-----",
+        "wallet": "vaults/<VAULT_ID>/wallets/<WALLET_ID>"
+      },
+      "tokenIn": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "tokenOut": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+      "amountIn": "100000",
+      "slippagePercentage": 0.1
+    },
+    {
+      "id": "transfer-utila-001",
+      "type": "transfer",
+      "utila": {
+        "email": "<UTILA_SERVICE_ACCOUNT_EMAIL>",
+        "privateKey": "-----BEGIN PRIVATE KEY-----\n<UTILA_PEM_KEY>\n-----END PRIVATE KEY-----",
+        "wallet": "vaults/<VAULT_ID>/wallets/<WALLET_ID>"
+      },
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "amount": "50000",
+      "recipientAddress": "<HINKAL_RECIPIENT_ADDRESS_5_PARTS>"
+    },
+    {
+      "id": "withdraw-utila-001",
+      "type": "withdraw",
+      "utila": {
+        "email": "<UTILA_SERVICE_ACCOUNT_EMAIL>",
+        "privateKey": "-----BEGIN PRIVATE KEY-----\n<UTILA_PEM_KEY>\n-----END PRIVATE KEY-----",
+        "wallet": "vaults/<VAULT_ID>/wallets/<WALLET_ID>"
+      },
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "amount": "30000",
+      "recipientAddress": "<RECIPIENT_ETH_ADDRESS>",
+      "isRelayerOff": false
+    },
+    {
+      "id": "private-send-utila-001",
+      "type": "private-send",
+      "utila": {
+        "email": "<UTILA_SERVICE_ACCOUNT_EMAIL>",
+        "privateKey": "-----BEGIN PRIVATE KEY-----\n<UTILA_PEM_KEY>\n-----END PRIVATE KEY-----",
+        "wallet": "vaults/<VAULT_ID>/wallets/<WALLET_ID>"
+      },
+      "tokenAddress": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "recipients": [
+        {
+          "address": "<RECIPIENT_ETH_ADDRESS>",
+          "amount": "20000"
+        },
+        {
+          "address": "<RECIPIENT_ETH_ADDRESS_2>",
+          "amount": "20000"
+        }
+      ]
+    },
+    {
+      "id": "get-private-balance-utila-001",
+      "type": "get-private-balance",
+      "utila": {
+        "email": "<UTILA_SERVICE_ACCOUNT_EMAIL>",
+        "privateKey": "-----BEGIN PRIVATE KEY-----\n<UTILA_PEM_KEY>\n-----END PRIVATE KEY-----",
+        "wallet": "vaults/<VAULT_ID>/wallets/<WALLET_ID>"
+      }
     }
   ]
 }

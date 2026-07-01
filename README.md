@@ -47,6 +47,7 @@ yarn start
 - `transfer` — shielded transfer to another Hinkal stealth address
 - `swap` — swap tokens within the shielded balance
 - `private-send` — multi-recipient send (deposit + withdraw in one order)
+- `get-private-balance` — read-only; logs the caller's shielded balances (no on-chain tx)
 
 Use the zero address (`0x0000000000000000000000000000000000000000`) as the token to operate on the chain's native coin (e.g. ETH).
 

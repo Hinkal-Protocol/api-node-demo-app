@@ -25,23 +25,27 @@ export const getWalletBalance = async (
   chainId: number,
   provider: ethers.Provider,
 ): Promise<WalletBalance> => {
-  const gasToken = GAS_TOKEN_SYMBOL[chainId]
-    ? getERC20TokenBySymbol(GAS_TOKEN_SYMBOL[chainId], chainId)
-    : undefined;
+  try {
+    const gasToken = GAS_TOKEN_SYMBOL[chainId]
+      ? getERC20TokenBySymbol(GAS_TOKEN_SYMBOL[chainId], chainId)
+      : undefined;
 
-  if (gasToken) {
-    const erc20 = new ethers.Contract(
-      gasToken.erc20TokenAddress,
-      ERC20_BALANCE_OF_ABI,
-      provider,
-    );
-    const raw: bigint = await erc20.balanceOf(address);
-    return {
-      amount: ethers.formatUnits(raw, gasToken.decimals),
-      symbol: gasToken.symbol,
-    };
+    if (gasToken) {
+      const erc20 = new ethers.Contract(
+        gasToken.erc20TokenAddress,
+        ERC20_BALANCE_OF_ABI,
+        provider,
+      );
+      const raw: bigint = await erc20.balanceOf(address);
+      return {
+        amount: ethers.formatUnits(raw, gasToken.decimals),
+        symbol: gasToken.symbol,
+      };
+    }
+
+    const raw = await provider.getBalance(address);
+    return { amount: ethers.formatEther(raw) };
+  } catch {
+    return { amount: "unknown" };
   }
-
-  const raw = await provider.getBalance(address);
-  return { amount: ethers.formatEther(raw) };
 };
