@@ -7,6 +7,7 @@ import {
   SwapTransaction,
   TransferTransaction,
   WithdrawTransaction,
+  GetPrivateBalanceTransaction,
 } from "../types";
 import { deposit } from "../api/deposit";
 import { withdraw } from "../api/withdraw";
@@ -21,11 +22,14 @@ import {
   PrivateSendPublicStatus,
   waitForOrderTerminal,
 } from "../api/privateSend";
+import { fetchBalances } from "../api/balance";
+import { logPrivateBalances } from "../utils/logger";
 import { ExternalActionId, getFeeStructure } from "../api/fees";
 import { getERC20Token } from "../constants/token-data";
 import { resolveAmountToWeiString } from "../utils/amount.utils";
 import { isNativeTokenAddress } from "../utils/tokens.utils";
 import type { Auth, TxSessionAuth } from "../api/types";
+import type { HinkalSigner } from "./signer.types";
 import {
   buildTxOverrides,
   getPendingNonce,
@@ -68,34 +72,32 @@ const resolveTxAmount = (
 };
 
 const buildGetterAuth = (
-  signer: ethers.BaseWallet,
   session: TxSessionAuth,
   chainId: number,
 ): Auth => ({
-  signature: session.signature,
-  nonce: session.nonce,
-  address: signer.address,
+  sessionId: session.sessionId,
+  privateKey: session.privateKey,
   chainId,
 });
 
 const executeDeposit = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: DepositTransaction,
 ): Promise<ExecutionResult> => {
   try {
+    const amountWei = resolveTxAmount(tx.amount, tx.tokenAddress, chainId);
     const txData = await deposit(
       signer,
       session,
-      signer.address,
       chainId,
       [tx.tokenAddress],
-      [tx.amount],
+      [amountWei],
     );
 
     if (!isNativeTokenAddress(tx.tokenAddress)) {
-      const amount = BigInt(tx.amount);
+      const amount = BigInt(amountWei);
       const erc20 = new ethers.Contract(tx.tokenAddress, ERC20_ABI, signer);
       const allowance = await erc20.allowance(signer.address, txData.to);
 
@@ -129,7 +131,7 @@ const executeDeposit = async (
 };
 
 const executeWithdraw = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: WithdrawTransaction,
@@ -140,7 +142,7 @@ const executeWithdraw = async (
     const feeStructure = isRelayerOff
       ? undefined
       : await getFeeStructure(
-        buildGetterAuth(signer, session, chainId),
+        buildGetterAuth(session, chainId),
         tx.feeToken ?? tx.tokenAddress,
         [tx.tokenAddress],
         ExternalActionId.Transact,
@@ -149,7 +151,6 @@ const executeWithdraw = async (
     const txHash = await withdraw(
       signer,
       session,
-      signer.address,
       chainId,
       [tx.tokenAddress],
       [amountWei],
@@ -165,7 +166,7 @@ const executeWithdraw = async (
 };
 
 const executeTransfer = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: TransferTransaction,
@@ -173,7 +174,7 @@ const executeTransfer = async (
   try {
     const amountWei = resolveTxAmount(tx.amount, tx.tokenAddress, chainId);
     const feeStructure = await getFeeStructure(
-      buildGetterAuth(signer, session, chainId),
+      buildGetterAuth(session, chainId),
       tx.feeToken ?? tx.tokenAddress,
       [tx.tokenAddress],
       ExternalActionId.Transact,
@@ -182,7 +183,6 @@ const executeTransfer = async (
     const txHash = await transfer(
       signer,
       session,
-      signer.address,
       chainId,
       [tx.tokenAddress],
       [amountWei],
@@ -197,13 +197,13 @@ const executeTransfer = async (
 };
 
 const executeSwapAction = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: SwapTransaction,
 ): Promise<ExecutionResult> => {
   try {
-    const getterAuth = buildGetterAuth(signer, session, chainId);
+    const getterAuth = buildGetterAuth(session, chainId);
     const inAmountWeiStr = resolveTxAmount(tx.amountIn, tx.tokenIn, chainId);
     const inAmountWei = BigInt(inAmountWeiStr);
     const quotedData = await getSwapData(
@@ -225,7 +225,6 @@ const executeSwapAction = async (
     const txHash = await executeSwap(
       signer,
       session,
-      signer.address,
       chainId,
       tx.tokenIn,
       tx.tokenOut,
@@ -240,7 +239,7 @@ const executeSwapAction = async (
 };
 
 const executePrivateSend = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   session: TxSessionAuth,
   chainId: number,
   tx: PrivateSendTransaction,
@@ -254,7 +253,6 @@ const executePrivateSend = async (
     const order = await privateSend(
       signer,
       session,
-      signer.address,
       chainId,
       tx.tokenAddress,
       recipients,
@@ -306,8 +304,22 @@ const executePrivateSend = async (
   }
 };
 
+const executeGetPrivateBalance = async (
+  session: TxSessionAuth,
+  chainId: number,
+  _tx: GetPrivateBalanceTransaction,
+): Promise<ExecutionResult> => {
+  try {
+    const balances = await fetchBalances(buildGetterAuth(session, chainId));
+    logPrivateBalances(balances);
+    return { success: true };
+  } catch (error) {
+    return fail(error);
+  }
+};
+
 export const executeTransaction = async (
-  signer: ethers.BaseWallet,
+  signer: HinkalSigner,
   chainId: number,
   session: TxSessionAuth,
   tx: BatchTransaction,
@@ -348,6 +360,12 @@ export const executeTransaction = async (
           session,
           chainId,
           tx as PrivateSendTransaction,
+        );
+      case BatchTransactionType.GetPrivateBalance:
+        return await executeGetPrivateBalance(
+          session,
+          chainId,
+          tx as GetPrivateBalanceTransaction,
         );
       default:
         return {

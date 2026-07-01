@@ -1,4 +1,5 @@
-import { API_BASE_URL } from "../constants/server.constants";
+import { buildAuthGet } from "../services/enclave-auth";
+import { enclaveFetch } from "../services/enclaveApi";
 import { Auth } from "./types";
 
 export enum ExternalActionId {
@@ -25,27 +26,20 @@ export const getFeeStructure = async (
   externalActionId: ExternalActionId,
   variableRate?: string,
 ): Promise<FeeStructure> => {
-  const { signature, nonce, address, chainId } = auth;
-  const params = new URLSearchParams({
-    signature,
-    nonce,
-    address,
-    chainId: String(chainId),
+  const params: Record<string, string | string[]> = {
     feeToken,
     externalActionId,
-  });
-  for (const tokenAddress of tokenAddresses) {
-    params.append("tokenAddresses", tokenAddress);
-  }
+    tokenAddresses,
+  };
   if (variableRate !== undefined) {
-    params.set("variableRate", variableRate);
+    params.variableRate = variableRate;
   }
 
-  const res = await fetch(`${API_BASE_URL}/get-fee-structure?${params}`);
+  const { queryString, headers, requestNonce } = buildAuthGet(auth, params);
 
-  const data = (await res.json()) as
-    | { success: true; feeStructure: FeeStructure }
-    | { error?: string };
+  const { res, data } = await enclaveFetch<
+    { success: true; feeStructure: FeeStructure } | { error?: string }
+  >(`/get-fee-structure?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(

@@ -5,6 +5,7 @@ import baseRegistry from "./baseRegistry.json";
 import polygonRegistry from "./polygonRegistry.json";
 import arcTestnetRegistry from "./arcTestnetRegistry.json";
 import sepoliaRegistry from "./sepoliaRegistry.json";
+import tempoRegistry from "./tempoRegistry.json";
 import { ERC20Token } from "../../types";
 import { chainIds } from "../chains.constants";
 
@@ -35,6 +36,9 @@ export const getERC20Registry = (chainId: number): ERC20Token[] => {
 
     case chainIds.sepolia:
       return sepoliaRegistry.networkRegistry as ERC20Token[];
+
+    case chainIds.tempo:
+      return tempoRegistry.networkRegistry as ERC20Token[];
 
     default:
       return [];

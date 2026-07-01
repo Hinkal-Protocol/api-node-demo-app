@@ -11,6 +11,7 @@ import {
   logBatchComplete,
 } from "../utils/logger";
 import { networkRegistry } from "../constants";
+import { getWalletBalance } from "./walletBalance";
 import {
   BALANCE_SYNC_ERROR,
   MAX_TX_RETRIES,
@@ -19,6 +20,8 @@ import {
 import { EnclaveSession } from "../api/types";
 import { createEnclaveSession } from "./session";
 import { buildWdkSigner } from "./wdkWallet";
+import { UtilaSigner, connectUtila } from "./utilaSigner";
+import type { HinkalSigner } from "./signer.types";
 import { sleep } from "../utils/sleep";
 
 export interface BatchProcessResult {
@@ -45,14 +48,13 @@ const getProvider = (chainId: number, rpcUrl: string): ethers.Provider => {
 const sessionCache = new Map<string, EnclaveSession>();
 
 const getSession = async (
-  signer: ethers.BaseWallet,
-  chainId: number,
+  signer: HinkalSigner,
 ): Promise<EnclaveSession> => {
-  const key = `${signer.address.toLowerCase()}:${chainId}`;
+  const key = signer.address.toLowerCase();
   const cached = sessionCache.get(key);
   if (cached) return cached;
 
-  const session = await createEnclaveSession(signer, chainId, true);
+  const session = await createEnclaveSession(signer, false);
   sessionCache.set(key, session);
   return session;
 };
@@ -80,30 +82,47 @@ export const processBatch = async (
           `Transaction ${tx.id}: missing chainId (not specified in transaction or default)`,
         );
 
-      if (!tx.privateKey && !tx.seedPhrase)
+      if (!tx.privateKey && !tx.seedPhrase && !tx.utila)
         throw new Error(
-          `Transaction ${tx.id}: missing signer (provide 'privateKey' or 'seedPhrase')`,
+          `Transaction ${tx.id}: missing signer (provide 'privateKey', 'seedPhrase', or 'utila')`,
         );
 
       const rpcUrl = networkRegistry[chainId]?.fetchRpcUrl;
       if (!rpcUrl) throw new Error(`RPC URL not found for chain ${chainId}`);
 
       const provider = getProvider(chainId, rpcUrl);
-      const signer: ethers.BaseWallet = tx.seedPhrase
-        ? await buildWdkSigner(tx.seedPhrase, provider)
-        : new ethers.Wallet(tx.privateKey!, provider);
-      const balance = await provider.getBalance(signer.address);
-      const balanceNative = ethers.formatEther(balance);
+      let signer: HinkalSigner;
+      if (tx.utila) {
+        const creds = { email: tx.utila.email, privateKey: tx.utila.privateKey };
+        const { wallets } = await connectUtila(creds);
+        const wallet = wallets.find((w) => w.name === tx.utila!.wallet);
+        if (!wallet)
+          throw new Error(
+            `Transaction ${tx.id}: Utila wallet '${tx.utila.wallet}' not found`,
+          );
+        signer = new UtilaSigner(creds, wallet, provider);
+      } else if (tx.seedPhrase) {
+        signer = await buildWdkSigner(tx.seedPhrase, provider);
+      } else {
+        signer = new ethers.Wallet(tx.privateKey!, provider);
+      }
+      const { amount, symbol } = await getWalletBalance(
+        signer.address,
+        chainId,
+        provider,
+      );
 
       logTransaction(i + 1, input.transactions.length, tx.type, tx.id);
-      await logWallet(signer.address, balanceNative, chainId);
+      await logWallet(signer.address, amount, chainId, symbol);
 
-      const session = await getSession(signer, chainId);
+      const session = await getSession(signer);
 
       let result = await executeTransaction(signer, chainId, session, tx);
       for (
         let attempt = 1;
-        attempt <= MAX_TX_RETRIES && !result.success && isBalanceSyncError(result.error);
+        attempt <= MAX_TX_RETRIES &&
+        !result.success &&
+        isBalanceSyncError(result.error);
         attempt++
       ) {
         logAlways(

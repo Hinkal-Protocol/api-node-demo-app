@@ -1,16 +1,15 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import {
+  buildAuthPost,
   buildWithdrawAuthFields,
-  resolveTxAuthFields,
 } from "../services/enclave-auth";
+import { enclaveFetch } from "../services/enclaveApi";
 import type { TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
 export const withdraw = async (
   signer: ethers.Signer,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
@@ -19,18 +18,7 @@ export const withdraw = async (
   feeToken?: string,
   feeStructure?: FeeStructure,
 ): Promise<string> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildWithdrawAuthFields(signer, {
-      chainId,
-      tokenAddresses,
-      amounts,
-      recipient: recipientAddress,
-    }),
-  );
-  const body = {
-    ...authFields,
-    address: account,
-    chainId,
+  const txData = {
     tokenAddresses,
     amounts,
     recipientAddress,
@@ -38,16 +26,28 @@ export const withdraw = async (
     feeToken,
     feeStructure,
   };
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
+    chainId,
+    txData,
+    () =>
+      buildWithdrawAuthFields(session.sessionId, signer, {
+        chainId,
+        tokenAddresses,
+        amounts,
+        recipient: recipientAddress,
+        feeToken,
+        feeStructure,
+      }),
+  );
 
-  const res = await fetch(`${API_BASE_URL}/withdraw`, {
+  const { res, data } = await enclaveFetch<
+    { success: true; txHash: string } | { error?: string }
+  >("/withdraw", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: bodyJson,
   });
-
-  const data = (await res.json()) as
-    | { success: true; txHash: string }
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Withdraw failed");

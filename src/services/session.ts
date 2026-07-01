@@ -1,47 +1,40 @@
+import { randomUUID } from "crypto";
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import {
   buildEnclaveSignMessage,
-  EnclaveSessionAccess,
-  generateNonce,
+  resolveSessionAuthMode,
 } from "./enclave-auth";
+import { enclaveFetch } from "./enclaveApi";
+import {
+  generateClientKeyPair,
+  requestSignaturePostHeader,
+} from "./request-signature";
 import type { EnclaveSession } from "../api/types";
+import type { HinkalSigner } from "./signer.types";
 
 type CreateSessionResponse =
-  | { success: true; expiresAt: string; hasWriteAccess: boolean }
+  | { success: true; expiresAt: string }
   | { success: false; error?: string };
 
-export const createEnclaveSession = async (
-  signer: ethers.BaseWallet,
-  chainId: number,
-  writeAccess: boolean,
+const postCreateSession = async (
+  privateKey: Uint8Array,
+  body: Record<string, unknown>,
 ): Promise<EnclaveSession> => {
-  const nonce = generateNonce();
-  const signature = await signer.signMessage(
-    buildEnclaveSignMessage(
-      nonce,
-      writeAccess ? EnclaveSessionAccess.Write : EnclaveSessionAccess.Read,
-    ),
+  const sigHeader = requestSignaturePostHeader(
+    { sessionId: body.sessionId as string, privateKey },
+    body,
   );
+  const requestNonce = body.nonce as string;
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE_URL}/create-session`, {
+  const { res, data } = await enclaveFetch<CreateSessionResponse>(
+    "/create-session",
+    requestNonce,
+    {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        signature,
-        address: signer.address,
-        chainId,
-        nonce,
-        writeAccess,
-      }),
-    });
-  } catch (err) {
-    throw new Error(`Network error: ${(err as Error).message}`);
-  }
-
-  const data = (await res.json()) as CreateSessionResponse;
+      headers: { "Content-Type": "application/json", ...sigHeader },
+      body: JSON.stringify(body),
+    },
+  );
 
   if (!res.ok || !data.success) {
     throw new Error(
@@ -50,9 +43,30 @@ export const createEnclaveSession = async (
   }
 
   return {
-    signature,
-    nonce,
-    hasWriteAccess: data.hasWriteAccess,
+    sessionId: body.sessionId as string,
+    authMode: resolveSessionAuthMode((body.useEIP712 as boolean | undefined) ?? false),
     expiresAt: data.expiresAt,
+    privateKey,
   };
+};
+
+export const createEnclaveSession = async (
+  signer: HinkalSigner,
+  useEIP712: boolean,
+): Promise<EnclaveSession> => {
+  const { privateKey, clientPublicKey } = generateClientKeyPair();
+  const sessionId = randomUUID();
+  const authMode = resolveSessionAuthMode(useEIP712);
+  const signature = await signer.signMessage(
+    buildEnclaveSignMessage(sessionId, clientPublicKey, authMode),
+  );
+  const body = {
+    signature,
+    address: signer.address,
+    sessionId,
+    clientPublicKey,
+    nonce: randomUUID(),
+    useEIP712,
+  };
+  return postCreateSession(privateKey, body);
 };

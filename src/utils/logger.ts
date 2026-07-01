@@ -1,4 +1,6 @@
 import { getERC20Token } from "./tokens.utils";
+import { getAmountInToken } from "./amount.utils";
+import { ERC20Token } from "../types";
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 
@@ -157,12 +159,11 @@ export const logWallet = async (
   address: string,
   balance: string,
   chainId: number,
+  symbol?: string,
 ): Promise<void> => {
-  const nativeToken = getERC20Token(zeroAddress, chainId);
+  const tokenSymbol = symbol ?? getERC20Token(zeroAddress, chainId)?.symbol;
   console.log(`💰 Wallet: ${address}`);
-  console.log(
-    `💵 Balance: ${balance} ${nativeToken?.symbol} | Chain: ${chainId}`,
-  );
+  console.log(`💵 Balance: ${balance} ${tokenSymbol} | Chain: ${chainId}`);
 };
 
 export const logConversion = (
@@ -187,6 +188,21 @@ export const logSuccess = (
   }
   if (gasUsed) {
     console.log(`   Gas used: ${gasUsed}`);
+  }
+};
+
+export const logPrivateBalances = (
+  balances: { token: ERC20Token; balance: string }[],
+): void => {
+  console.log(`🔒 Private (shielded) balances:`);
+  if (balances.length === 0) {
+    console.log(`   (none)`);
+    return;
+  }
+  for (const { token, balance } of balances) {
+    console.log(
+      `   ${getAmountInToken(token, BigInt(balance))} ${token.symbol}`,
+    );
   }
 };
 

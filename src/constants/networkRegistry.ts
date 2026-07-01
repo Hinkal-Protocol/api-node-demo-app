@@ -34,6 +34,11 @@ export const networkRegistry: Record<number, Network> = {
     chainId: chainIds.base,
     fetchRpcUrl: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
   },
+  [chainIds.tempo]: {
+    name: "Tempo",
+    chainId: chainIds.tempo,
+    fetchRpcUrl: "https://rpc.tempo.xyz",
+  },
   [chainIds.arcTestnet]: {
     name: "Arc Testnet",
     chainId: chainIds.arcTestnet,

@@ -29,7 +29,10 @@ Each transaction needs a signer. Provide **one** of:
 
 - `privateKey` — raw EVM private key (e.g. `0xabc...`)
 - `seedPhrase` — WDK seed phrase; signer derived via `@tetherto/wdk-wallet-evm` (account index 0)
-
+- `utila` — Utila MPC custodial wallet; signing and broadcasting go through the Utila API (the key never leaves Utila's vault). Object with:
+  - `email` — Utila service-account email (RS256 JWT subject)
+  - `privateKey` — Utila service-account private key in PEM form (use `\n` for newlines)
+  - `wallet` — Utila wallet resource path, e.g. `vaults/<id>/wallets/<id>`
 
 ## Run
 
@@ -44,14 +47,15 @@ yarn start
 - `transfer` — shielded transfer to another Hinkal stealth address
 - `swap` — swap tokens within the shielded balance
 - `private-send` — multi-recipient send (deposit + withdraw in one order)
+- `get-private-balance` — read-only; logs the caller's shielded balances (no on-chain tx)
 
 Use the zero address (`0x0000000000000000000000000000000000000000`) as the token to operate on the chain's native coin (e.g. ETH).
 
 ## Environment
 
-| Variable          | Required | Description                                              |
-| ----------------- | -------- | -------------------------------------------------------- |
-| `ALCHEMY_API_KEY` | yes      | Alchemy key used to build RPC URLs for every chain.      |
+| Variable          | Required | Description                                         |
+| ----------------- | -------- | --------------------------------------------------- |
+| `ALCHEMY_API_KEY` | yes      | Alchemy key used to build RPC URLs for every chain. |
 
 ## Config
 

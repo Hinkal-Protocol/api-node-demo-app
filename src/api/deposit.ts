@@ -1,9 +1,9 @@
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../constants/server.constants";
 import {
+  buildAuthPost,
   buildDepositAuthFields,
-  resolveTxAuthFields,
 } from "../services/enclave-auth";
+import { enclaveFetch } from "../services/enclaveApi";
 import type { TxSessionAuth } from "./types";
 
 export type TxData = {
@@ -17,35 +17,29 @@ export type TxData = {
 export const deposit = async (
   signer: ethers.Signer,
   session: TxSessionAuth,
-  account: string,
   chainId: number,
   tokenAddresses: string[],
   amounts: string[],
 ): Promise<TxData> => {
-  const authFields = await resolveTxAuthFields(session, () =>
-    buildDepositAuthFields(signer, "Deposit", {
-      chainId,
-      tokenAddresses,
-      amounts,
-    }),
-  );
-  const body = {
-    ...authFields,
-    address: account,
+  const { bodyJson, headers, requestNonce } = await buildAuthPost(
+    session,
     chainId,
-    tokenAddresses,
-    amounts,
-  };
+    { tokenAddresses, amounts },
+    () =>
+      buildDepositAuthFields(session.sessionId, signer, "Deposit", {
+        chainId,
+        tokenAddresses,
+        amounts,
+      }),
+  );
 
-  const res = await fetch(`${API_BASE_URL}/deposit`, {
+  const { res, data } = await enclaveFetch<
+    { success: true; txData: TxData } | { error?: string }
+  >("/deposit", requestNonce, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers,
+    body: bodyJson,
   });
-
-  const data = (await res.json()) as
-    | { success: true; txData: TxData }
-    | { error?: string };
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error((data as { error?: string }).error ?? "Deposit failed");
