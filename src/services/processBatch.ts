@@ -11,6 +11,7 @@ import {
   logBatchComplete,
 } from "../utils/logger";
 import { networkRegistry } from "../constants";
+import { getWalletBalance } from "./walletBalance";
 import {
   BALANCE_SYNC_ERROR,
   MAX_TX_RETRIES,
@@ -105,11 +106,14 @@ export const processBatch = async (
       } else {
         signer = new ethers.Wallet(tx.privateKey!, provider);
       }
-      const balance = await provider.getBalance(signer.address);
-      const balanceNative = ethers.formatEther(balance);
+      const { amount, symbol } = await getWalletBalance(
+        signer.address,
+        chainId,
+        provider,
+      );
 
       logTransaction(i + 1, input.transactions.length, tx.type, tx.id);
-      await logWallet(signer.address, balanceNative, chainId);
+      await logWallet(signer.address, amount, chainId, symbol);
 
       const session = await getSession(signer);
 

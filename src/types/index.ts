@@ -4,6 +4,7 @@ export enum BatchTransactionType {
   Transfer = "transfer",
   Swap = "swap",
   PrivateSend = "private-send",
+  GetPrivateBalance = "get-private-balance",
 }
 
 export interface BatchWalletConfig {
@@ -73,12 +74,17 @@ export interface PrivateSendTransaction extends BaseBatchTransaction {
   txCompletionTime?: number;
 }
 
+export interface GetPrivateBalanceTransaction extends BaseBatchTransaction {
+  type: BatchTransactionType.GetPrivateBalance;
+}
+
 export type BatchTransaction =
   | DepositTransaction
   | WithdrawTransaction
   | TransferTransaction
   | SwapTransaction
-  | PrivateSendTransaction;
+  | PrivateSendTransaction
+  | GetPrivateBalanceTransaction;
 
 export interface BatchTransactionInput {
   chainId: number;

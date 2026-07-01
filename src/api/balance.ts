@@ -1,7 +1,17 @@
 import { buildAuthGet } from "../services/enclave-auth";
 import { enclaveFetch } from "../services/enclaveApi";
+import { getERC20Token } from "../utils/tokens.utils";
 import { Auth } from "./types";
 import { ERC20Token } from "../types";
+
+// Enclave returns balances keyed by token address; the token metadata is
+// resolved locally from the registry.
+type RawTokenBalance = {
+  chainId: number;
+  tokenAddress: string;
+  balance: string;
+  timestamp?: string;
+};
 
 export type TokenBalance = {
   token: ERC20Token;
@@ -10,7 +20,7 @@ export type TokenBalance = {
 };
 
 type BalanceResponse =
-  | { success: true; balances: TokenBalance[] }
+  | { success: true; balances: RawTokenBalance[] }
   | { error?: string };
 
 export const fetchBalances = async (auth: Auth): Promise<TokenBalance[]> => {
@@ -28,5 +38,14 @@ export const fetchBalances = async (auth: Auth): Promise<TokenBalance[]> => {
     );
   }
 
-  return data.balances.filter((b) => b.balance !== "0");
+  return data.balances
+    .filter((b) => b.balance !== "0")
+    .map(
+      (b): { token: ERC20Token | undefined; balance: string; timestamp?: string } => ({
+        token: getERC20Token(b.tokenAddress, b.chainId),
+        balance: b.balance,
+        timestamp: b.timestamp,
+      }),
+    )
+    .filter((b): b is TokenBalance => b.token !== undefined);
 };

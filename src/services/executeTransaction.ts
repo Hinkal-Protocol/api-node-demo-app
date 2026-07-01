@@ -7,6 +7,7 @@ import {
   SwapTransaction,
   TransferTransaction,
   WithdrawTransaction,
+  GetPrivateBalanceTransaction,
 } from "../types";
 import { deposit } from "../api/deposit";
 import { withdraw } from "../api/withdraw";
@@ -21,6 +22,8 @@ import {
   PrivateSendPublicStatus,
   waitForOrderTerminal,
 } from "../api/privateSend";
+import { fetchBalances } from "../api/balance";
+import { logPrivateBalances } from "../utils/logger";
 import { ExternalActionId, getFeeStructure } from "../api/fees";
 import { getERC20Token } from "../constants/token-data";
 import { resolveAmountToWeiString } from "../utils/amount.utils";
@@ -301,6 +304,20 @@ const executePrivateSend = async (
   }
 };
 
+const executeGetPrivateBalance = async (
+  session: TxSessionAuth,
+  chainId: number,
+  _tx: GetPrivateBalanceTransaction,
+): Promise<ExecutionResult> => {
+  try {
+    const balances = await fetchBalances(buildGetterAuth(session, chainId));
+    logPrivateBalances(balances);
+    return { success: true };
+  } catch (error) {
+    return fail(error);
+  }
+};
+
 export const executeTransaction = async (
   signer: HinkalSigner,
   chainId: number,
@@ -343,6 +360,12 @@ export const executeTransaction = async (
           session,
           chainId,
           tx as PrivateSendTransaction,
+        );
+      case BatchTransactionType.GetPrivateBalance:
+        return await executeGetPrivateBalance(
+          session,
+          chainId,
+          tx as GetPrivateBalanceTransaction,
         );
       default:
         return {
