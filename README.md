@@ -14,7 +14,7 @@ Create your environment file and add an Alchemy API key (required — RPC URLs a
 
 ```
 cp .env.example .env
-# then set ALCHEMY_API_KEY in .env
+# then set ALCHEMY_API_KEY (and HELIUS_API_KEY for Solana) in .env
 ```
 
 Create your transactions file from the template, then fill in the signer, addresses, and amounts:
@@ -56,6 +56,7 @@ Use the zero address (`0x0000000000000000000000000000000000000000`) as the token
 | Variable          | Required | Description                                         |
 | ----------------- | -------- | --------------------------------------------------- |
 | `ALCHEMY_API_KEY` | yes      | Alchemy key used to build RPC URLs for every chain. |
+| `HELIUS_API_KEY`  | Solana   | Helius key used to build the Solana RPC URL.        |
 
 ## Config
 
