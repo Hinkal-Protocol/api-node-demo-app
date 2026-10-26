@@ -10,13 +10,6 @@ Install dependencies:
 yarn install
 ```
 
-Create your environment file and add an Alchemy API key (required — RPC URLs are built from it):
-
-```
-cp .env.example .env
-# then set ALCHEMY_API_KEY (and HELIUS_API_KEY for Solana) in .env
-```
-
 Create your transactions file from the template, then fill in the signer, addresses, and amounts:
 
 ```
@@ -51,12 +44,9 @@ yarn start
 
 Use the zero address (`0x0000000000000000000000000000000000000000`) as the token to operate on the chain's native coin (e.g. ETH).
 
-## Environment
+## RPC
 
-| Variable          | Required | Description                                         |
-| ----------------- | -------- | --------------------------------------------------- |
-| `ALCHEMY_API_KEY` | yes      | Alchemy key used to build RPC URLs for every chain. |
-| `HELIUS_API_KEY`  | Solana   | Helius key used to build the Solana RPC URL.        |
+RPC URLs are public endpoints set in `src/constants/networkRegistry.ts` — no API keys are needed.
 
 ## Config
 
