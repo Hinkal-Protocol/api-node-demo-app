@@ -23,6 +23,12 @@ const REQUIRED_FIELDS: Record<BatchTransactionType, string[]> = {
   ],
   [BatchTransactionType.Swap]: ["tokenIn", "tokenOut", "amountIn"],
   [BatchTransactionType.PrivateSend]: ["tokenAddress", "recipients"],
+  [BatchTransactionType.PrivateSendBridge]: [
+    "tokenAddress",
+    "destinationChainId",
+    "destinationTokenAddress",
+    "recipients",
+  ],
   [BatchTransactionType.GetPrivateBalance]: [],
 };
 
@@ -74,6 +80,7 @@ const validateTransaction = async (
 
   if (
     tx.type === BatchTransactionType.PrivateSend ||
+    tx.type === BatchTransactionType.PrivateSendBridge ||
     tx.type === BatchTransactionType.GetPrivateBalance
   ) {
     return processedTx as BatchTransaction;

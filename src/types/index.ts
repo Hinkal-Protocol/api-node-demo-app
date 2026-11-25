@@ -4,6 +4,7 @@ export enum BatchTransactionType {
   Transfer = "transfer",
   Swap = "swap",
   PrivateSend = "private-send",
+  PrivateSendBridge = "private-send-bridge",
   GetPrivateBalance = "get-private-balance",
 }
 
@@ -74,6 +75,16 @@ export interface PrivateSendTransaction extends BaseBatchTransaction {
   txCompletionTime?: number;
 }
 
+export interface PrivateSendBridgeTransaction extends BaseBatchTransaction {
+  type: BatchTransactionType.PrivateSendBridge;
+  tokenAddress: string;
+  destinationChainId: number;
+  destinationTokenAddress: string;
+  recipients: PrivateSendRecipient[];
+  slippagePercentage?: number;
+  txCompletionTime?: number;
+}
+
 export interface GetPrivateBalanceTransaction extends BaseBatchTransaction {
   type: BatchTransactionType.GetPrivateBalance;
 }
@@ -84,6 +95,7 @@ export type BatchTransaction =
   | TransferTransaction
   | SwapTransaction
   | PrivateSendTransaction
+  | PrivateSendBridgeTransaction
   | GetPrivateBalanceTransaction;
 
 export interface BatchTransactionInput {
