@@ -1,5 +1,6 @@
 import { buildAuthGet } from "../services/enclave-auth";
 import { enclaveFetch } from "../services/enclaveApi";
+import { EnclaveApiRoute } from "../constants/server.constants";
 import { Auth } from "./types";
 
 export enum ExternalActionId {
@@ -35,11 +36,11 @@ export const getFeeStructure = async (
     params.variableRate = variableRate;
   }
 
-  const { queryString, headers, requestNonce } = buildAuthGet(auth, params);
+  const { queryString, headers, requestNonce } = buildAuthGet(auth, EnclaveApiRoute.GetFeeStructure, params);
 
   const { res, data } = await enclaveFetch<
     { success: true; feeStructure: FeeStructure } | { error?: string }
-  >(`/get-fee-structure?${queryString}`, requestNonce, { headers });
+  >(`${EnclaveApiRoute.GetFeeStructure}?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(

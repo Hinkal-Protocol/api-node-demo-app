@@ -1,5 +1,6 @@
 import { buildAuthGet } from "../services/enclave-auth";
 import { enclaveFetch } from "../services/enclaveApi";
+import { EnclaveApiRoute } from "../constants/server.constants";
 import { getERC20Token } from "../utils/tokens.utils";
 import { Auth } from "./types";
 import { ERC20Token } from "../types";
@@ -24,10 +25,10 @@ type BalanceResponse =
   | { error?: string };
 
 export const fetchBalances = async (auth: Auth): Promise<TokenBalance[]> => {
-  const { queryString, headers, requestNonce } = buildAuthGet(auth);
+  const { queryString, headers, requestNonce } = buildAuthGet(auth, EnclaveApiRoute.Balance);
 
   const { res, data } = await enclaveFetch<BalanceResponse>(
-    `/balance?${queryString}`,
+    `${EnclaveApiRoute.Balance}?${queryString}`,
     requestNonce,
     { headers },
   );

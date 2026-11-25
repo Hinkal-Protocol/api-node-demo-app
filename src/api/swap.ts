@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { buildAuthGet, buildAuthPost, buildSwapAuthFields } from "../services/enclave-auth";
 import { enclaveFetch } from "../services/enclaveApi";
+import { EnclaveApiRoute } from "../constants/server.constants";
 import { ExternalActionId, FeeStructure } from "./fees";
 import type { Auth, TxSessionAuth } from "./types";
 
@@ -28,11 +29,11 @@ export const getSwapData = async (
     params.slippagePercentage = String(slippagePercentage);
   }
 
-  const { queryString, headers, requestNonce } = buildAuthGet(auth, params);
+  const { queryString, headers, requestNonce } = buildAuthGet(auth, EnclaveApiRoute.GetSwapData, params);
 
   const { res, data } = await enclaveFetch<
     (SwapData & { success: true }) | { error?: string }
-  >(`/get-swap-data?${queryString}`, requestNonce, { headers });
+  >(`${EnclaveApiRoute.GetSwapData}?${queryString}`, requestNonce, { headers });
 
   if (!res.ok || !("success" in data && data.success)) {
     throw new Error(
@@ -74,6 +75,7 @@ export const executeSwap = async (
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
+    EnclaveApiRoute.Swap,
     chainId,
     txData,
     () =>
@@ -90,7 +92,7 @@ export const executeSwap = async (
 
   const { res, data } = await enclaveFetch<
     { success: true; txHash: string } | { error?: string }
-  >("/swap", requestNonce, {
+  >(EnclaveApiRoute.Swap, requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,

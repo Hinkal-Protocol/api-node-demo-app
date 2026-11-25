@@ -5,10 +5,8 @@ import {
   resolveSessionAuthMode,
 } from "./enclave-auth";
 import { enclaveFetch } from "./enclaveApi";
-import {
-  generateClientKeyPair,
-  requestSignaturePostHeader,
-} from "./request-signature";
+import { EnclaveApiRoute } from "../constants/server.constants";
+import { generateClientKeyPair, signPayload } from "./request-signature";
 import type { EnclaveSession } from "../api/types";
 import type { HinkalSigner } from "./signer.types";
 
@@ -20,14 +18,13 @@ const postCreateSession = async (
   privateKey: Uint8Array,
   body: Record<string, unknown>,
 ): Promise<EnclaveSession> => {
-  const sigHeader = requestSignaturePostHeader(
-    { sessionId: body.sessionId as string, privateKey },
-    body,
-  );
+  const sigHeader = {
+    "x-hinkal-request-signature": signPayload(privateKey, JSON.stringify(body)),
+  };
   const requestNonce = body.nonce as string;
 
   const { res, data } = await enclaveFetch<CreateSessionResponse>(
-    "/create-session",
+    EnclaveApiRoute.CreateSession,
     requestNonce,
     {
       method: "POST",
@@ -44,7 +41,9 @@ const postCreateSession = async (
 
   return {
     sessionId: body.sessionId as string,
-    authMode: resolveSessionAuthMode((body.useEIP712 as boolean | undefined) ?? false),
+    authMode: resolveSessionAuthMode(
+      (body.useEIP712 as boolean | undefined) ?? false,
+    ),
     expiresAt: data.expiresAt,
     privateKey,
   };
