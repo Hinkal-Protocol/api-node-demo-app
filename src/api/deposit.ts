@@ -4,6 +4,7 @@ import {
   buildDepositAuthFields,
 } from "../services/enclave-auth";
 import { enclaveFetch } from "../services/enclaveApi";
+import { EnclaveApiRoute } from "../constants/server.constants";
 import type { TxSessionAuth } from "./types";
 
 export type TxData = {
@@ -23,6 +24,7 @@ export const deposit = async (
 ): Promise<TxData> => {
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
+    EnclaveApiRoute.Deposit,
     chainId,
     { tokenAddresses, amounts },
     () =>
@@ -35,7 +37,7 @@ export const deposit = async (
 
   const { res, data } = await enclaveFetch<
     { success: true; txData: TxData } | { error?: string }
-  >("/deposit", requestNonce, {
+  >(EnclaveApiRoute.Deposit, requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,

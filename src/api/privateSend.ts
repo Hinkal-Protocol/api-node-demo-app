@@ -4,6 +4,7 @@ import {
   buildPrivateSendAuthFields,
 } from "../services/enclave-auth";
 import { enclaveFetch } from "../services/enclaveApi";
+import { EnclaveApiRoute } from "../constants/server.constants";
 import type { TxSessionAuth } from "./types";
 
 export enum PrivateSendPublicStatus {
@@ -46,6 +47,7 @@ export const privateSend = async (
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
+    EnclaveApiRoute.PrivateSend,
     chainId,
     txData,
     () =>
@@ -60,7 +62,7 @@ export const privateSend = async (
 
   const { res, data } = await enclaveFetch<
     ({ success: true } & PrivateSendOrder) | { error?: string }
-  >("/private-send", requestNonce, {
+  >(EnclaveApiRoute.PrivateSend, requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,
@@ -93,7 +95,7 @@ export const getOrderStatus = async (
 ): Promise<OrderStatusResponse> => {
   const { res, data } = await enclaveFetch<
     OrderStatusResponse & { error?: string }
-  >(`/private-send/${orderId}`);
+  >(`${EnclaveApiRoute.PrivateSend}/${orderId}`);
 
   if (!res.ok || data.success === false) {
     throw new Error(data.error ?? "Order status fetch failed");

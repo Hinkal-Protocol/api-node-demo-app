@@ -4,6 +4,7 @@ import {
   buildWithdrawAuthFields,
 } from "../services/enclave-auth";
 import { enclaveFetch } from "../services/enclaveApi";
+import { EnclaveApiRoute } from "../constants/server.constants";
 import type { TxSessionAuth } from "./types";
 import { FeeStructure } from "./fees";
 
@@ -28,6 +29,7 @@ export const withdraw = async (
   };
   const { bodyJson, headers, requestNonce } = await buildAuthPost(
     session,
+    EnclaveApiRoute.Withdraw,
     chainId,
     txData,
     () =>
@@ -43,7 +45,7 @@ export const withdraw = async (
 
   const { res, data } = await enclaveFetch<
     { success: true; txHash: string } | { error?: string }
-  >("/withdraw", requestNonce, {
+  >(EnclaveApiRoute.Withdraw, requestNonce, {
     method: "POST",
     headers,
     body: bodyJson,

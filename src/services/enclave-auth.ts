@@ -252,6 +252,7 @@ export const buildPrivateSendAuthFields = (
 
 export const buildAuthPost = async (
   session: TxSessionAuth,
+  routePath: string,
   chainId: number,
   txData: Record<string, unknown>,
   buildTypedDataAuth: () => Promise<EnclaveTxAuthFields>,
@@ -269,7 +270,7 @@ export const buildAuthPost = async (
       bodyJson,
       headers: {
         "Content-Type": "application/json",
-        ...requestSignaturePostHeader(session, body),
+        ...requestSignaturePostHeader(session, routePath, body),
       },
       requestNonce: body.nonce,
     };
@@ -303,6 +304,7 @@ const appendQueryParams = (
 
 export const buildAuthGet = (
   auth: Auth,
+  routePath: string,
   params: Record<string, QueryParamValue> = {},
 ): {
   queryString: string;
@@ -316,6 +318,6 @@ export const buildAuthGet = (
   return {
     queryString,
     requestNonce: base.nonce,
-    headers: requestSignatureGetHeader(auth, queryString),
+    headers: requestSignatureGetHeader(auth, routePath, queryString),
   };
 };
