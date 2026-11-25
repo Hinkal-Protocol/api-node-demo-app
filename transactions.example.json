@@ -51,6 +51,21 @@
       ]
     },
     {
+      "id": "private-send-bridge-001",
+      "type": "private-send-bridge",
+      "privateKey": "<YOUR_PRIVATE_KEY> OR <YOUR_SEED_PHRASE>",
+      "chainId": 8453,
+      "tokenAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "destinationChainId": 42161,
+      "destinationTokenAddress": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "recipients": [
+        {
+          "address": "<RECIPIENT_ADDRESS_ON_DESTINATION_CHAIN>",
+          "amount": "1000000"
+        }
+      ]
+    },
+    {
       "id": "get-private-balance-001",
       "type": "get-private-balance",
       "privateKey": "<YOUR_PRIVATE_KEY> OR <YOUR_SEED_PHRASE>"

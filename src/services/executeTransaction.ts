@@ -3,6 +3,7 @@ import {
   BatchTransaction,
   BatchTransactionType,
   PrivateSendTransaction,
+  PrivateSendBridgeTransaction,
   DepositTransaction,
   SwapTransaction,
   TransferTransaction,
@@ -22,6 +23,11 @@ import {
   PrivateSendPublicStatus,
   waitForOrderTerminal,
 } from "../api/privateSend";
+import {
+  getPrivateSendBridgeQuote,
+  privateSendBridge,
+  waitForBridgeOrderTerminal,
+} from "../api/privateSendBridge";
 import { fetchBalances } from "../api/balance";
 import { logPrivateBalances } from "../utils/logger";
 import { ExternalActionId, getFeeStructure } from "../api/fees";
@@ -304,6 +310,85 @@ const executePrivateSend = async (
   }
 };
 
+const executePrivateSendBridge = async (
+  signer: HinkalSigner,
+  session: TxSessionAuth,
+  chainId: number,
+  tx: PrivateSendBridgeTransaction,
+): Promise<ExecutionResult> => {
+  try {
+    const recipients = tx.recipients.map((recipient) => ({
+      address: recipient.address,
+      amount: resolveTxAmount(recipient.amount, tx.tokenAddress, chainId),
+    }));
+    const auth = buildGetterAuth(session, chainId);
+
+    const { quote } = await getPrivateSendBridgeQuote(
+      auth,
+      tx.tokenAddress,
+      tx.destinationChainId,
+      tx.destinationTokenAddress,
+      recipients,
+      tx.slippagePercentage,
+      tx.txCompletionTime,
+    );
+
+    const order = await privateSendBridge(
+      session,
+      chainId,
+      tx.tokenAddress,
+      tx.destinationChainId,
+      tx.destinationTokenAddress,
+      recipients,
+      quote,
+    );
+
+    const { txData } = order;
+    if (!txData) {
+      throw new Error("private-send-bridge response has no txData");
+    }
+
+    if (order.approvalAddress && !isNativeTokenAddress(tx.tokenAddress)) {
+      const amountIn = BigInt(order.amountIn);
+      const erc20 = new ethers.Contract(tx.tokenAddress, ERC20_ABI, signer);
+      const allowance = await erc20.allowance(
+        signer.address,
+        order.approvalAddress,
+      );
+      if (allowance < amountIn) {
+        const approveNonce = await getPendingNonce(signer);
+        const approveTx = await erc20.approve(
+          order.approvalAddress,
+          amountIn,
+          await buildTxOverrides(signer, approveNonce),
+        );
+        await approveTx.wait();
+      }
+    }
+
+    const depositTx = await sendTransactionWithNonce(signer, {
+      to: txData.to,
+      data: txData.data,
+      value: BigInt(txData.value),
+    });
+    const receipt = await depositTx.wait();
+
+    const finalOrder = await waitForBridgeOrderTerminal(auth, order.orderId);
+    if (finalOrder.status !== PrivateSendPublicStatus.Scheduled) {
+      throw new Error(`Order ended as '${finalOrder.status}'`);
+    }
+
+    return {
+      success: true,
+      txHash: receipt?.hash ?? depositTx.hash,
+      blockNumber: receipt?.blockNumber,
+      gasUsed: receipt?.gasUsed?.toString(),
+    };
+  } catch (error) {
+    return fail(error);
+  }
+};
+
 const executeGetPrivateBalance = async (
   session: TxSessionAuth,
   chainId: number,
@@ -360,6 +445,13 @@ export const executeTransaction = async (
           session,
           chainId,
           tx as PrivateSendTransaction,
+        );
+      case BatchTransactionType.PrivateSendBridge:
+        return await executePrivateSendBridge(
+          signer,
+          session,
+          chainId,
+          tx as PrivateSendBridgeTransaction,
         );
       case BatchTransactionType.GetPrivateBalance:
         return await executeGetPrivateBalance(

@@ -14,4 +14,7 @@ export enum EnclaveApiRoute {
   Transfer = "/transfer",
   Swap = "/swap",
   PrivateSend = "/private-send",
+  GetPrivateSendBridgeQuote = "/get-private-send-bridge-quote",
+  PrivateSendBridge = "/private-send-bridge",
+  PrivateSendBridgeOrder = "/private-send-bridge/:orderId",
 }
